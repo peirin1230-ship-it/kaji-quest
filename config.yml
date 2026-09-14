@@ -1,0 +1,27 @@
+# kaji-quest 設定（docs/SPEC.md §13.2 を Pages 運用向けに絞ったもの）
+# ★ 公開リポジトリ。子の名前・生年月日・住所・写真はここにも他にも書かない。
+
+repo:
+  owner: peirin1230-ship-it
+  name: kaji-quest
+  branch: main                  # ページが logs/ を書き込む先
+
+me:
+  github: peirin1230-ship-it
+
+start_date: "2026-09-14"        # Week 1 の月曜。段階的引き上げ（ramp）の起点
+
+target:
+  final_weighted_minutes: 780   # §6.2 で自分が見積もる最終目標（換算分/週）。まずは仕様の例のまま
+  ramp:                         # 4 週ごとに引き上げる
+    - { weeks: "1-4",  ratio: 0.50 }
+    - { weeks: "5-8",  ratio: 0.70 }
+    - { weeks: "9-12", ratio: 0.85 }
+    - { weeks: "13-",  ratio: 1.00 }
+  auto_downshift_after_miss: 2  # 2 週連続未達なら比率を 1 段階下げる（ページが自動計算）
+
+pass:
+  per_week: 1                   # パス権。使ってもストリークは切れない
+
+privacy:
+  log_time: true                # false にすると記録に時刻（ts）を残さず日付だけにする

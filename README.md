@@ -1,47 +1,47 @@
 # kaji-quest
 
-自分ひとりが家事・育児を続けるための仕組み。仕様は [docs/SPEC.md](docs/SPEC.md)。
+自分ひとりが家事・育児を続けるための道具。仕様は [docs/SPEC.md](docs/SPEC.md)。
+運用は GitHub Pages のページ 1 枚で行う。Issue は使わない。
 
-## いまのフェーズ: Phase 0 — 手で回す（Week 1-2）
+**ページ**: https://peirin1230-ship-it.github.io/kaji-quest/
 
-Bot はまだ動かさない。Issue テンプレートだけで運用し、面倒だった点を Phase 1 の自動化に反映する。
+## 使い方
 
-### 毎朝
+1. ページを開く。スマホなら「ホーム画面に追加」しておくとアプリのように開ける
+2. 初回だけ ⚙ から GitHub トークンを保存する（下記）
+3. 今日のタスクが並ぶ。やったら **完了** を 1 タップ。所要時間は見込みが自動で入る。変えたいときだけ「詳細」
+4. 作業ブロック（子ども担当）と名もなき家事は **後から記録**。終わってから時間チップを 1 タップ。世話中にスマホは見ない
+5. やらない日は **今日はパス**（週 1 回）。追撃も減点もない。ストリークも切れない
 
-**Issues → New issue** から定期タスクを 4 件起票する（GitHub Mobile でも可）。
+記録は `logs/YYYY/MM.jsonl` に 1 行ずつコミットされる。集計（今週の換算時間、目標、ストリーク）はページを開くたびにログから計算する。
 
-| テンプレート | 領域 | core | 見込み → 換算 |
-|---|---|---|---|
-| 🧽 夜の洗い物リセット | 洗い物 | ★ | 15分 → 18分 |
-| 🍳 翌日分の仕込み | 料理 | | 45分 → 68分 |
-| 🚿 風呂掃除 | 掃除 | | 10分 → 11分 |
-| 🗑 ゴミまとめ・ゴミ出し | 名もなき家事 | ★ | 5分 → 7分 |
+## トークン（初回 1 回）
 
-妻が作業を始めるタイミングで 🧸 **作業ブロック** を起票する（core、見込み 60分 → 87分）。
+[Fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) を作る。
 
-### 完了したら（15秒以内）
+- Repository access: **Only select repositories → kaji-quest**
+- Permissions → Repository permissions: **Contents → Read and write**
+- Expiration: 好きな長さ。切れたら作り直して ⚙ に貼り直す
 
-1. チェックリストにチェックを入れる
-2. コメントに `/done 実時間` を書く。例: `/done 18`。気分や気づきも添えるなら `/done 18 mood:4 先に鍋を浸けておくと早い`
-3. Issue をクローズする
+発行した `github_pat_…` をページの ⚙ に貼って保存する。トークンはそのスマホのブラウザにだけ残り、GitHub API 以外には送られない。
 
-Phase 0 では `/done` に Bot は反応しない。同じ書式で残しておけば Phase 2 でログを再生成できる。
-やらない日は `/pass`（週1回の権利）とコメントし、`status/passed` を付けてクローズする。追撃はしない。
+## 初回セットアップ（Pages）
 
-### 2週間後の判定
+`main` に push すると `build-pages` ワークフローが `site/` を配信する。Pages が有効になっていなければ、
+**Settings → Pages → Build and deployment → Source を「GitHub Actions」** にしてから、Actions → build-pages → Run workflow を 1 回実行する。
 
-- 続いたら Phase 1（自動生成とリマインド）へ
-- 続かなければテンプレートを 3 件に減らしてもう 2 週間
+## 変えたいとき
 
-## ラベル
-
-[`.github/labels.yml`](.github/labels.yml) が定義（SPEC §11.1）。`main` へ push すると [`sync-labels`](.github/workflows/sync-labels.yml) ワークフローが GitHub のラベルへ反映する。手動で流すときは **Actions → sync-labels → Run workflow**。Actions が使えないときは Issues → Labels から手で作る。
-
-## 構成
-
-| パス | 内容 |
+| したいこと | 場所 |
 |---|---|
-| `docs/SPEC.md` | 仕様書 v2.1 |
-| `routines/daily.yml` | 定期タスク定義（Phase 1 の生成元。Phase 0 はテンプレートと二重管理） |
-| `.github/ISSUE_TEMPLATE/` | 起票テンプレート。`routine-*.yml` は Phase 0 限定 |
-| `.github/labels.yml` | ラベル定義 |
+| タスクを足す・減らす・見込みや負荷 W を変える | `routines/daily.yml`（push すると自動で反映） |
+| 週の目標、段階的引き上げ、パス回数 | `config.yml` |
+| 記録に時刻を残さない | `config.yml` の `privacy.log_time: false` |
+| 見た目や動き | `site/`（`app.js` / `style.css`） |
+
+ローカルで確認するなら `python3 scripts/build_site.py _site` のあと `_site/` を静的サーバで開く。
+
+## 公開リポジトリでの注意
+
+子の名前・生年月日・写真・住所は書かない。ログには日付・時刻、タスク名、所要時間、任意の気分と気づきだけが残る。
+ラベル定義（`.github/labels.yml`）と Issue テンプレート（ナレッジ用）は残してあるが、日々の運用には使わない。
