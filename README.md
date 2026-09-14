@@ -27,8 +27,9 @@
 
 ## 初回セットアップ（Pages）
 
-`main` に push すると `build-pages` ワークフローが `site/` を配信する。Pages が有効になっていなければ、
-**Settings → Pages → Build and deployment → Source を「GitHub Actions」** にしてから、Actions → build-pages → Run workflow を 1 回実行する。
+`main` に push すると `build-pages` ワークフローが `site/` を組み立てて `gh-pages` ブランチへ push し、GitHub Pages が配信する。
+`gh-pages` ブランチができた時点で Pages は自動で有効になる。もしページが 404 のままなら、
+**Settings → Pages → Build and deployment → Source: Deploy from a branch → Branch: gh-pages / (root)** を 1 回だけ選ぶ（再実行は不要）。
 
 ## 変えたいとき
 

@@ -1,6 +1,7 @@
-# site/ と routines/・config.yml を GitHub Pages へ配信する。
-# 初回だけ Settings → Pages → Source を「GitHub Actions」にする（configure-pages の enablement でも試みる）。
-# ページが logs/ に書くコミットは [skip ci] 付きで、paths にも当たらないので、この workflow は動かない。
+# site/ と routines/・config.yml を組み立てて gh-pages ブランチへ push し、GitHub Pages で配信する。
+# gh-pages ブランチができると Pages は自動で有効になる。ならなければ
+# Settings → Pages → Source: Deploy from a branch → gh-pages / (root) を 1 回だけ選ぶ（再実行は不要）。
+# ページが logs/ に書くコミットは [skip ci] 付きで paths にも当たらないので、この workflow は動かない。
 name: build-pages
 
 on:
@@ -15,16 +16,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -34,21 +33,14 @@ jobs:
           python-version: "3.12"
       - run: pip install pyyaml
       - run: python3 scripts/build_site.py _site
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-        continue-on-error: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Push _site to gh-pages as a single orphan commit
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd _site
+          git init -q -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "deploy ${GITHUB_SHA}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages

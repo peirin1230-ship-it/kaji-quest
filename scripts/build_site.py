@@ -62,6 +62,7 @@ def main():
     if os.path.isdir(out):
         shutil.rmtree(out)
     shutil.copytree(os.path.join(ROOT, "site"), out)
+    open(os.path.join(out, ".nojekyll"), "w").close()   # Pages 側の Jekyll 処理を止め、ファイルをそのまま配信する
     os.makedirs(os.path.join(out, "data"), exist_ok=True)
     for name, data in (("routines.json", routines), ("config.json", config)):
         with open(os.path.join(out, "data", name), "w", encoding="utf-8") as f:
