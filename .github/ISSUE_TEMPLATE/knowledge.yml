@@ -1,0 +1,44 @@
+name: "💡 ナレッジ（コツ）の追加"
+description: 覚えておきたいコツを1つ。月次で knowledge/ に昇格させる
+title: "[ナレッジ] "
+labels: ["type/knowledge"]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: 領域
+      options:
+        - 洗い物
+        - 料理
+        - 掃除
+        - 育児
+        - 名もなき家事
+    validations:
+      required: true
+  - type: dropdown
+    id: level
+    attributes:
+      label: レベル
+      options:
+        - "1: 初級"
+        - "2: 中級"
+        - "3: 上級"
+  - type: textarea
+    id: body
+    attributes:
+      label: コツの本文
+      description: 何を・なぜ・どれくらい効くか。3行以内
+      placeholder: |
+        グラス → 箸・カトラリー → 茶碗 → 皿 → 油物 → 鍋 の順で洗う。
+        スポンジが油で汚染される回数が減り、洗剤の使用量と時間が2〜3割減る。
+    validations:
+      required: true
+  - type: input
+    id: action
+    attributes:
+      label: 今日やること（1行）
+      placeholder: "洗う前に30秒だけシンクの中で並べ替える"
+  - type: markdown
+    attributes:
+      value: |
+        フォーマットは docs/SPEC.md §9.1。昇格時に `knowledge/<area>/<id>.md` を作る。

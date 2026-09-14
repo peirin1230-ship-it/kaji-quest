@@ -1,0 +1,111 @@
+# GitHub ラベル定義（docs/SPEC.md §11.1）
+#
+# main へ push すると .github/workflows/sync-labels.yml が GitHub のラベルへ反映する。
+# ここに無いラベルは削除しない（skip-delete）。ラベルを増やすときはこのファイルに足す。
+
+# ---- 領域 ------------------------------------------------------------------
+- name: area/dishes
+  color: "1d76db"
+  description: 洗い物
+- name: area/cooking
+  color: "e36209"
+  description: 料理（翌日分の仕込み）
+- name: area/cleaning
+  color: "0e8a16"
+  description: 掃除
+- name: area/childcare
+  color: "d876e3"
+  description: 育児（作業ブロック・風呂・寝かしつけ）
+- name: area/nameless
+  color: "6f42c1"
+  description: 名もなき家事
+
+# ---- 種別 ------------------------------------------------------------------
+- name: type/routine
+  color: "006b75"
+  description: 定期タスク（routines/*.yml）
+- name: type/adhoc
+  color: "5ac8c8"
+  description: 単発タスク
+- name: type/knowledge
+  color: "fbca04"
+  description: ナレッジ（コツ）
+- name: type/retro
+  color: "c2e0c6"
+  description: 振り返り
+- name: type/quest
+  color: "f7c6c7"
+  description: 週次クエスト
+
+# ---- 頻度 ------------------------------------------------------------------
+- name: freq/daily
+  color: "ededed"
+  description: 毎日
+- name: freq/weekly
+  color: "d4d4d4"
+  description: 毎週
+- name: freq/monthly
+  color: "bcbcbc"
+  description: 毎月
+- name: freq/seasonal
+  color: "a3a3a3"
+  description: 季節
+
+# ---- 状態 ------------------------------------------------------------------
+- name: core
+  color: "b60205"
+  description: 絶対防衛ライン（省エネモードでも残す）
+- name: status/carry-over
+  color: "fef2c0"
+  description: 繰り越し（責めない印）
+- name: status/passed
+  color: "c2e0c6"
+  description: パス権を使用
+- name: status/eco
+  color: "e4e669"
+  description: 省エネモード中に生成
+- name: status/blocked
+  color: "e99695"
+  description: 事情により実施不可
+
+# ---- 負荷係数 W（§6.1: W = 1.0 + p + m + t、取りうる値は 13 通り）------------
+# Phase 0 は手動で付ける。Phase 2 以降は Bot が自動付与する。
+- name: load/W1.00
+  color: "fef3e2"
+  description: 換算係数 W=1.00
+- name: load/W1.10
+  color: "fde8c8"
+  description: 換算係数 W=1.10
+- name: load/W1.15
+  color: "fddcae"
+  description: 換算係数 W=1.15
+- name: load/W1.20
+  color: "fbd094"
+  description: 換算係数 W=1.20
+- name: load/W1.25
+  color: "f9c47a"
+  description: 換算係数 W=1.25
+- name: load/W1.30
+  color: "f7b761"
+  description: 換算係数 W=1.30
+- name: load/W1.35
+  color: "f4aa4a"
+  description: 換算係数 W=1.35
+- name: load/W1.40
+  color: "f19d35"
+  description: 換算係数 W=1.40
+- name: load/W1.45
+  color: "ed8f22"
+  description: 換算係数 W=1.45
+- name: load/W1.50
+  color: "e88112"
+  description: 換算係数 W=1.50
+- name: load/W1.55
+  color: "e27308"
+  description: 換算係数 W=1.55
+- name: load/W1.60
+  color: "da6504"
+  description: 換算係数 W=1.60
+- name: load/W1.70
+  color: "c95400"
+  description: 換算係数 W=1.70

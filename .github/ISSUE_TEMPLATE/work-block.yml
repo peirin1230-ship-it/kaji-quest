@@ -1,0 +1,35 @@
+# 定義元: routines/daily.yml → work-block（schedule: manual）
+name: "🧸 作業ブロック（子ども担当）"
+description: 妻が作業を始めるときに1タップで起票
+title: "[育児] 作業ブロック"
+labels: ["area/childcare", "type/routine", "core", "load/W1.45"]
+body:
+  - type: input
+    id: minutes
+    attributes:
+      label: 見込み時間（分）
+      placeholder: "60"
+    validations:
+      required: true
+  - type: dropdown
+    id: weather
+    attributes:
+      label: 天候
+      options:
+        - 晴
+        - 雨
+        - 雪
+        - 室内のみ
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ チェックリスト
+      options:
+        - label: 何時までかを確認する
+        - label: 作業部屋のドアを閉める／呼びに行かせない
+        - label: 終わったら子の様子を1行記録
+  - type: markdown
+    attributes:
+      value: |
+        完了したらコメントに `/done 実時間` を書いてクローズ（例: `/done 75`）。
+        遊びネタカードの自動添付は Phase 3 で追加。

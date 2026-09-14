@@ -1,0 +1,31 @@
+# Phase 0 用の手動起票テンプレート（Phase 1 で generate-tasks.yml に置き換える）
+# 定義元: routines/daily.yml → cooking-next-day
+name: "🍳 翌日分の仕込み"
+description: "毎日 帰宅後 ・ 見込み 45分（W=1.50 → 換算 68分）"
+title: "[料理] 翌日分の仕込み"
+labels: ["area/cooking", "type/routine", "freq/daily", "load/W1.50"]
+body:
+  - type: input
+    id: menu
+    attributes:
+      label: 献立（任意）
+      placeholder: "鶏の照り焼き／小松菜のおひたし"
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: ✅ チェックリスト
+      options:
+        - label: 献立を決める（主菜1＋副菜1）
+        - label: 不足食材を確認する（なければ在庫で組む）
+        - label: 主菜を仕込む
+        - label: 副菜を仕込む
+        - label: 粗熱を取って冷蔵し、日付を書く
+  - type: input
+    id: estimate
+    attributes:
+      label: 見込み
+      value: "cooking-next-day ・ 45分 ・ W=1.50 → 換算 68分"
+  - type: markdown
+    attributes:
+      value: |
+        そのまま **Submit** でOK。完了したらコメントに `/done 実時間` を書いてクローズ（例: `/done 40`）。

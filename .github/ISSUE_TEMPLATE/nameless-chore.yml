@@ -1,0 +1,30 @@
+name: "👁 名もなき家事の発見"
+description: 「これも家事だった」と気づいたものを記録する
+title: "[名もなき家事] "
+labels: ["area/nameless", "type/adhoc"]
+body:
+  - type: input
+    id: what
+    attributes:
+      label: 何をしたか
+      placeholder: "洗剤の詰め替えとストック発注"
+    validations:
+      required: true
+  - type: input
+    id: minutes
+    attributes:
+      label: 所要時間（分）
+      placeholder: "5"
+  - type: dropdown
+    id: mental
+    attributes:
+      label: 段取り・判断の重さ
+      options:
+        - "1: 何も考えなくていい"
+        - "2: 少し考える"
+        - "3: 在庫把握や判断が要る"
+  - type: markdown
+    attributes:
+      value: |
+        発見すること自体がバッジ対象です 🏅
+        済んでいるなら、起票してそのままコメント `/done 所要時間` でクローズ。

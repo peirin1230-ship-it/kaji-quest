@@ -1,0 +1,33 @@
+# .github/labels.yml の内容を GitHub のラベルへ反映する（docs/SPEC.md §11.1）。
+# main への push（labels.yml か本ファイルの変更時）と手動実行で動く。
+# YAML に無いラベルは削除しない（skip-delete: true）。消したいときは GitHub 上で手で消す。
+name: sync-labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/labels.yml"
+      - ".github/workflows/sync-labels.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sync-labels
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crazy-max/ghaction-github-labeler@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          yaml-file: .github/labels.yml
+          skip-delete: true
+          dry-run: false
