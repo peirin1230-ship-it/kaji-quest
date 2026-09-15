@@ -1,0 +1,3 @@
+{"date":"2026-09-15","ts":"2026-09-15T10:35:31+09:00","task_id":"floor-vacuum","title":"床の掃除機（全部屋）","area":"cleaning","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mu202jikfjfz"}
+{"date":"2026-09-15","ts":"2026-09-15T10:44:03+09:00","task_id":"nameless-adhoc","title":"名もなき家事","area":"nameless","status":"done","mode":"full","actual_minutes":15,"weight":1.15,"weighted_minutes":17.3,"xp":17,"learned":"修理品の郵送","id":"mu20dioob2a4"}
+{"date":"2026-09-15","ts":"2026-09-15T10:59:24+09:00","task_id":"kitchen-drain-pipe","title":"キッチン排水管にパイプ洗浄剤","area":"cleaning","status":"done","mode":"full","actual_minutes":5,"weight":1.25,"weighted_minutes":6.3,"xp":6,"id":"mu20x9n5d141"}
