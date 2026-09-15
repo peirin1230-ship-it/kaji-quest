@@ -15,7 +15,7 @@ import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOAD_RANGES = {"physical": {1, 2, 3}, "mental": {1, 2, 3}, "time_bound": {0, 1, 2}}
-SCHEDULE_TYPES = {"cron", "daily", "weekly", "monthly", "seasonal", "manual"}
+SCHEDULE_TYPES = {"cron", "daily", "weekly", "monthly", "seasonal", "manual", "interval"}
 REQUIRED = ("id", "title", "area", "schedule", "est_minutes", "load")
 
 
@@ -39,8 +39,11 @@ def load_routines():
             if rid in seen:
                 fail(f"{path}: id が重複 {rid}")
             seen.add(rid)
-            if (r["schedule"] or {}).get("type") not in SCHEDULE_TYPES:
+            schedule = r["schedule"] or {}
+            if schedule.get("type") not in SCHEDULE_TYPES:
                 fail(f"{rid}: schedule.type は {sorted(SCHEDULE_TYPES)} のどれか")
+            if schedule.get("type") == "interval" and not (isinstance(schedule.get("days"), int) and schedule["days"] > 0):
+                fail(f"{rid}: interval には正の整数の days が要る")
             for key, allowed in LOAD_RANGES.items():
                 if (r["load"] or {}).get(key) not in allowed:
                     fail(f"{rid}: load.{key} は {sorted(allowed)} のどれか")

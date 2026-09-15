@@ -53,6 +53,12 @@ button { font: inherit; cursor: pointer; -webkit-tap-highlight-color: transparen
 button:disabled { opacity: .45; cursor: default; }
 .badge { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--chip); color: var(--muted); vertical-align: middle; font-weight: 600; }
 .badge.core { background: var(--core-bg); color: var(--danger); }
+.badge.due { background: var(--chip-on); color: var(--primary); }
+.badge.big { background: #fbe3cc; color: #9a4b0a; }
+.task.is-later .title { color: var(--muted); }
+.task .check { color: var(--primary); font-weight: 700; padding: 0 8px; }
+h3.group { font-size: 13px; color: var(--muted); margin: 14px 0 2px; font-weight: 600; }
+.wide { width: 100%; margin-top: 10px; }
 .pass-row { margin-top: 10px; display: flex; justify-content: flex-end; }
 .empty { color: var(--muted); font-size: 14px; margin: 6px 0; }
 

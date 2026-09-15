@@ -1,0 +1,465 @@
+# routines/menu.yml — 掃除メニュー（間隔式の選択肢）
+#
+# 「何を掃除するか」で悩まないための選択肢。毎日の「今日のタスク」には出ない。
+# ページの「掃除メニュー」に、前回からの経過日数 ÷ 目安日数 が大きい順に並ぶ。上から順にやればいい。
+# 目安を過ぎても責めない。順番が上がるだけ。足す・減らす・目安日数を変えるのはここだけ。
+#
+#   schedule: { type: interval, days: N }  N 日ごとが目安
+#   place: 一覧の見出し（キッチン / 風呂・洗面・トイレ / リビング・寝室 / 玄関・ベランダ / 家電 / 子ども / その他）
+#   checklist: やり方のコツ。ページの「詳細」で見える
+#   load は docs/SPEC.md §6.1（physical 1-3 / mental 1-3 / time_bound 0-2）
+
+# ---- キッチン ----
+- id: kitchen-counter
+  title: コンロまわり・調理台を拭く
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 3 }
+  est_minutes: 5
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 温かいうちに油はねを拭けば洗剤いらず
+    - セスキ水を吹いて 30 秒置いてから拭く
+
+- id: sink-polish
+  title: シンクの水垢磨き
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 7 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - クエン酸水を吹いて 5 分置く → スポンジ → 水気を拭く
+    - 仕上げに乾拭きすると曇らない
+
+- id: kitchen-drain-pipe
+  title: キッチン排水管にパイプ洗浄剤
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 30 }
+  est_minutes: 5
+  load: { physical: 1, mental: 2, time_bound: 1 }
+  checklist:
+    - 夜、最後に水を流してから投入して朝まで放置
+    - 在庫が 1 本を切ったら買い物リストへ
+
+- id: microwave
+  title: 電子レンジの庫内
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 14 }
+  est_minutes: 10
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 水を入れた耐熱容器を 3 分チン → 蒸気で汚れが浮く → 拭く
+
+- id: fridge-check
+  title: 冷蔵庫の拭き掃除と期限チェック
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 14 }
+  est_minutes: 15
+  load: { physical: 1, mental: 2, time_bound: 0 }
+  checklist:
+    - 期限切れを捨てる → 棚を 1 段ずつ拭く
+    - 野菜室の底の新聞紙を替える
+
+- id: fridge-deep
+  title: 冷蔵庫の全棚清掃
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 90 }
+  est_minutes: 30
+  load: { physical: 2, mental: 2, time_bound: 0 }
+  checklist:
+    - 買い物前の空いている日にやる
+    - 棚板は外してぬるま湯で洗う
+
+- id: stove-grates
+  title: コンロ五徳の焦げ落とし
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 60 }
+  est_minutes: 30
+  load: { physical: 3, mental: 2, time_bound: 0 }
+  checklist:
+    - 重曹 + 熱湯に 30 分つけ置き → 古歯ブラシ
+    - 落ちない焦げは翌日もう一度つけ置き
+
+- id: grill
+  title: 魚焼きグリルの受け皿と網
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 60 }
+  est_minutes: 20
+  load: { physical: 2, mental: 2, time_bound: 0 }
+  checklist:
+    - 受け皿に水と重曹を入れて放置 → こする
+    - 使うたびに受け皿に水を張っておくと溜まらない
+
+- id: range-hood-filter
+  title: 換気扇のフィルター
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 30 }
+  est_minutes: 20
+  load: { physical: 2, mental: 2, time_bound: 0 }
+  checklist:
+    - 外して重曹湯につけ置き → スポンジ
+    - フィルターカバーを貼ると次回が楽
+
+- id: range-hood
+  title: 換気扇本体（ファン）
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 90 }
+  est_minutes: 45
+  load: { physical: 3, mental: 2, time_bound: 0 }
+  checklist:
+    - 電源を切る → ファンを外す → 重曹湯で 30 分つけ置き
+    - これ 1 件で今日の掃除は十分
+
+- id: trash-bins
+  title: ゴミ箱の洗浄
+  area: cleaning
+  place: キッチン
+  schedule: { type: interval, days: 30 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - ゴミ出し直後に風呂場で洗って乾かす
+    - 底に新聞紙を敷くと臭いが減る
+
+# ---- 風呂・洗面・トイレ ----
+- id: bathroom-deep
+  title: 浴室の防カビ＆排水口（しっかり）
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 7 }
+  est_minutes: 30
+  load: { physical: 3, mental: 1, time_bound: 0 }
+  checklist:
+    - 排水口のフタ・カゴ・ぬめりを取る
+    - 壁・床・浴槽のフチをこすり洗い
+    - 50℃ のシャワーを全面に 30 秒 → 換気
+
+- id: bath-fungicide
+  title: 防カビくん煙剤
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 60 }
+  est_minutes: 10
+  load: { physical: 1, mental: 2, time_bound: 1 }
+  checklist:
+    - 浴室を洗って乾かしてから焚く。2 時間は入れない
+    - 在庫が無ければ買い物リストへ
+
+- id: bath-drain-parts
+  title: 風呂の排水口パーツとフタの裏
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 14 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 外せる部品は全部外して古歯ブラシ
+    - 塩素系はゴム手袋と換気
+
+- id: washbasin
+  title: 洗面台と鏡
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 3 }
+  est_minutes: 5
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 使い終わったタオルで 鏡 → 蛇口 → ボウル の順に拭く
+    - 蛇口の根元の水垢はクエン酸
+
+- id: toilet
+  title: トイレ（便器・床・壁の下）
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 3 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 便器の内側 → フチ裏 → 座面 → 床 → 壁の下 の順
+    - 床と壁の下は飛び散りがあるので毎回
+
+- id: toilet-deep
+  title: トイレの奥・タンク・換気口
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 15
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 便器と床の境目、タンクの後ろ、換気口のほこり
+    - ウォシュレットのノズルを出して掃除
+
+- id: laundry-filter
+  title: 洗濯機の糸くずフィルターと洗剤投入口
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 7 }
+  est_minutes: 3
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - フィルターの糸くずを捨てて水洗い
+    - 投入口の洗剤カスを拭く
+
+- id: washer-tub
+  title: 洗濯槽クリーナー
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 5
+  load: { physical: 1, mental: 2, time_bound: 0 }
+  checklist:
+    - 夜に槽洗浄コースを回す
+    - 終わったらフタを開けて乾かす
+
+- id: drains-other
+  title: 洗面・洗濯機の排水口
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - ヘアキャッチャーとトラップを外して洗う
+    - パイプ洗浄剤は月 1
+
+# ---- リビング・寝室 ----
+- id: floor-vacuum
+  title: 床の掃除機（全部屋）
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 2 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 子どもの食べこぼしエリア → 廊下 → 寝室 の順
+    - ロボット掃除機があるなら「床のものを上げる」が本体
+
+- id: floor-wipe
+  title: 床の水拭き（食卓まわり）
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 3 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - フロアワイパー + ウェットシートで十分
+    - 食べこぼしの多い日は夜のうちに
+
+- id: dining-wipe
+  title: 食卓・子ども椅子・壁の食べこぼし
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 2 }
+  est_minutes: 5
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 椅子のベルトと脚も拭く
+    - 壁の低いところは意外と汚れている
+
+- id: dusting
+  title: 棚の上・照明・テレビ裏のほこり
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 30 }
+  est_minutes: 15
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - ハンディモップで上から下へ、最後に掃除機
+    - テレビ裏の配線まわりは静電気でたまる
+
+- id: walls-switches
+  title: ドアノブ・スイッチ・手すりを拭く
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 14 }
+  est_minutes: 10
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - アルコールシートで家を一周する
+    - 子どもの手の高さは特に
+
+- id: bedsheets
+  title: シーツ・枕カバーの交換
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 7 }
+  est_minutes: 15
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 外す → 洗濯機へ → 替えを敷く、を一連で
+    - 替えを 1 セット常備すると乾きを待たなくていい
+
+- id: windows
+  title: 窓・サッシ（1 部屋ずつ）
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 30 }
+  est_minutes: 20
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - サッシの溝は 掃除機 → ブラシ → 濡れ雑巾
+    - 窓は曇りの日にやると拭き跡が残らない
+
+- id: screens
+  title: 網戸
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 60 }
+  est_minutes: 20
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 外さずに、外側からメラミンスポンジかシャワー
+    - 花粉と黄砂の後にやる
+
+- id: curtains
+  title: カーテンの洗濯
+  area: cleaning
+  place: リビング・寝室
+  schedule: { type: interval, days: 180 }
+  est_minutes: 20
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - フックを外して洗濯ネット → 脱水短め → 濡れたまま吊るす
+
+# ---- 玄関・ベランダ ----
+- id: entrance-sweep
+  title: 玄関の掃き掃除
+  area: cleaning
+  place: 玄関・ベランダ
+  schedule: { type: interval, days: 7 }
+  est_minutes: 5
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 靴を全部上げてから掃く
+    - ついでに靴を並べ直す
+
+- id: entrance-deep
+  title: 玄関のたたき水拭きと靴箱
+  area: cleaning
+  place: 玄関・ベランダ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 15
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 靴を出して靴箱の棚を拭く → たたきを水拭き
+    - 履かない靴は処分候補
+
+- id: balcony
+  title: ベランダの掃き掃除と排水口
+  area: cleaning
+  place: 玄関・ベランダ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 15
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 排水口の落ち葉と泥を取る（詰まると大雨で溢れる）
+    - 室外機のまわりも
+
+# ---- 家電 ----
+- id: aircon-filter
+  title: エアコンのフィルター
+  area: cleaning
+  place: 家電
+  schedule: { type: interval, days: 30 }
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 外して 掃除機 → 水洗い → 乾かす。冷房・暖房の季節は月 1
+
+- id: aircon-body
+  title: エアコンの吹出口と本体拭き
+  area: cleaning
+  place: 家電
+  schedule: { type: interval, days: 90 }
+  est_minutes: 20
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 電源を切ってから。吹出口のルーバーを開けて拭く
+    - 黒い点はカビ。増えたら業者を検討
+
+# ---- 子ども ----
+- id: toys-wipe
+  title: おもちゃの拭き掃除・消毒
+  area: cleaning
+  place: 子ども
+  schedule: { type: interval, days: 7 }
+  est_minutes: 10
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 口に入れるものを優先
+    - 布のおもちゃは洗濯ネットで洗う
+
+- id: kids-gear
+  title: ベビーカー・チャイルドシートの拭き掃除
+  area: cleaning
+  place: 子ども
+  schedule: { type: interval, days: 30 }
+  est_minutes: 15
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 食べかすは掃除機、ベルトはウェットシート
+
+- id: kids-storage
+  title: 子どもの服・おもちゃのサイズアウト整理
+  area: cleaning
+  place: 子ども
+  schedule: { type: interval, days: 60 }
+  est_minutes: 20
+  load: { physical: 1, mental: 2, time_bound: 0 }
+  checklist:
+    - きつくなった服を 1 袋分抜く
+    - 遊ばなくなったおもちゃは一旦しまう（ローテーション）
+
+# ---- その他（名もなき家事・段取り） ----
+- id: supplies-check
+  title: 消耗品の在庫チェックと注文
+  area: nameless
+  place: その他
+  schedule: { type: interval, days: 7 }
+  est_minutes: 5
+  load: { physical: 1, mental: 2, time_bound: 0 }
+  checklist:
+    - トイレットペーパー・洗剤・おむつ・おしりふき・ゴミ袋
+    - 残り 1 つになったものを注文
+
+- id: mail-papers
+  title: 郵便・書類の処理
+  area: nameless
+  place: その他
+  schedule: { type: interval, days: 7 }
+  est_minutes: 10
+  load: { physical: 1, mental: 2, time_bound: 0 }
+  checklist:
+    - 開封 → 捨てる／やる／保管 の 3 択で即仕分け
+    - 保育園のプリントはその場で写真
+
+- id: weekly-menu
+  title: 1 週間分の献立をざっくり決める
+  area: cooking
+  place: その他
+  schedule: { type: interval, days: 7 }
+  est_minutes: 15
+  load: { physical: 1, mental: 3, time_bound: 0 }
+  checklist:
+    - 主菜だけ 7 つ決める。副菜は在庫で
+    - 決めたら買い物リストへ
+
+- id: shopping-list
+  title: 買い物リストの更新
+  area: cooking
+  place: その他
+  schedule: { type: interval, days: 3 }
+  est_minutes: 5
+  load: { physical: 1, mental: 2, time_bound: 0 }
+  checklist:
+    - 冷蔵庫を見て足りないものをメモへ
+    - 週末のまとめ買い分も

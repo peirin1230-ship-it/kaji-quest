@@ -18,7 +18,10 @@ const MOODS = ['😩', '😕', '😐', '🙂', '😄'];
 const COUNTED = new Set(['done', 'partial', 'passed']);   // ストリークに数える status
 const EARNED = new Set(['done', 'partial']);              // 換算時間に数える status
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false };
+const PLACES = ['キッチン', '風呂・洗面・トイレ', 'リビング・寝室', '玄関・ベランダ', '家電', '子ども', 'その他'];
+const BIG_DAYS = 30;                                      // 目安がこれ以上の項目は「大物」枠に 1 件出す
+
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -170,6 +173,7 @@ function render() {
   $('#streak').textContent = `🔥 ${state.streak}日`;
   $('#progress').innerHTML = progressHTML(today, entries);
   $('#tasks').innerHTML = tasksHTML(today, todays, entries);
+  $('#menu').innerHTML = menuHTML(today, entries);
   $('#quick').innerHTML = quickHTML(todays);
   $('#week').innerHTML = weekHTML(today, entries);
   $('#today-log').innerHTML = logHTML(todays);
@@ -206,6 +210,43 @@ function tasksHTML(today, todays, entries) {
     ? '<span class="sub">今日はパス済み。ストリークは続く</span>'
     : `<button class="ghost small" data-act="pass"${perWeek && passUsed >= perWeek ? ' disabled' : ''}>今日はパス${perWeek ? `（今週 残り ${Math.max(0, perWeek - passUsed)}）` : ''}</button>`;
   return `<h2>今日のタスク <span class="sub">${head}</span></h2>${due.length ? `<ul class="tasks">${items}</ul>` : '<p class="empty">今日の定期タスクはない</p>'}<div class="pass-row">${pass}</div>`;
+}
+// 掃除メニュー（schedule.type: interval）。前回からの経過日数 ÷ 目安日数 が大きい順。未実施は 1.5 扱い
+const isMenu = r => r.schedule && r.schedule.type === 'interval';
+function menuItems(today, entries) {
+  const last = {};
+  entries.forEach(e => { if (EARNED.has(e.status) && (!last[e.task_id] || e.date > last[e.task_id])) last[e.task_id] = e.date; });
+  return state.routines.filter(isMenu).map(r => {
+    const days = Math.max(1, +r.schedule.days || 7); const ld = last[r.id]; const since = ld ? daysBetween(ld, today) : null;
+    return { r, days, since, score: since === null ? 1.5 : since / days };
+  }).sort((a, b) => b.score - a.score || a.days - b.days || a.r.est_minutes - b.r.est_minutes);
+}
+function menuRowHTML(i, big) {
+  const { r, days, since, score } = i; const done = since === 0;
+  const when = since === null ? '前回 まだ' : done ? '今日やった' : `前回 ${since}日前`;
+  const badge = done ? '' : big ? '<span class="badge big">大物</span>' : score >= 1 ? '<span class="badge due">そろそろ</span>' : '';
+  const later = !done && score < 1 && since !== null ? ` ・ あと ${Math.max(1, Math.ceil(days - since))} 日` : '';
+  const meta = `${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ 目安 ${days}日ごと ・ ${when}${later}`;
+  const btns = done ? '<span class="check">✓</span>' : '<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done">完了</button>';
+  return `<li class="task${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
+}
+function menuHTML(today, entries) {
+  const items = menuItems(today, entries); if (!items.length) return '';
+  const open = items.filter(i => i.since !== 0);
+  const top = open.slice(0, 2);                                                       // 上位 2 件
+  const big = open.find(i => i.days >= BIG_DAYS && i.score >= 1 && !top.includes(i)) || open.find(i => !top.includes(i));   // + 大物 1 件
+  const picks = big ? [...top, big] : top;
+  const doneToday = items.filter(i => i.since === 0).length;
+  let full = '';
+  if (state.showMenu) {
+    const groups = new Map();
+    items.forEach(i => { const p = i.r.place || 'その他'; if (!groups.has(p)) groups.set(p, []); groups.get(p).push(i); });
+    const order = [...PLACES.filter(p => groups.has(p)), ...[...groups.keys()].filter(p => !PLACES.includes(p))];
+    full = order.map(p => `<h3 class="group">${esc(p)}</h3><ul class="tasks">${groups.get(p).map(i => menuRowHTML(i, false)).join('')}</ul>`).join('');
+  }
+  return `<h2>掃除メニュー <span class="sub">${doneToday ? `今日 ${doneToday} 件 ・ ` : ''}悩んだら上から。過ぎても責めない</span></h2>
+    <ul class="tasks">${picks.map(i => menuRowHTML(i, i === big && i.days >= BIG_DAYS)).join('')}</ul>
+    <button class="ghost small wide" data-act="menu-toggle">${state.showMenu ? '閉じる' : `全部見る（${items.length} 件）`}</button>${full}`;
 }
 function quickHTML(todays) {
   const manual = state.routines.filter(r => r.schedule && r.schedule.type === 'manual');
@@ -298,6 +339,7 @@ $('#app').addEventListener('click', ev => {
     case 'detail': if (r) openDetail(r); break;
     case 'undo': undo(b.dataset.entry); break;
     case 'pass': recordPass(); break;
+    case 'menu-toggle': state.showMenu = !state.showMenu; render(); break;
   }
 });
 
