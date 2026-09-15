@@ -10,6 +10,7 @@ on:
     paths:
       - "site/**"
       - "routines/**"
+      - "knowledge/**"
       - "config.yml"
       - "scripts/build_site.py"
       - ".github/workflows/build-pages.yml"
