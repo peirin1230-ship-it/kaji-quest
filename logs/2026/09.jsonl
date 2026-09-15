@@ -8,3 +8,4 @@
 {"date":"2026-09-15","ts":"2026-09-15T18:22:56+09:00","task_id":"laundry-fold-store","title":"洗濯物を取り込んでたたむ・しまう","area":"laundry","status":"done","mode":"full","actual_minutes":15,"weight":1,"weighted_minutes":15,"xp":15,"id":"mu2grn64rtmw"}
 {"date":"2026-09-15","ts":"2026-09-15T18:22:59+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mu2grpem98e8"}
 {"date":"2026-09-15","ts":"2026-09-15T18:23:01+09:00","task_id":"cooking-next-day","title":"翌日分の仕込み","area":"cooking","status":"done","mode":"full","actual_minutes":45,"weight":1.5,"weighted_minutes":67.5,"xp":68,"id":"mu2grqx68ofj"}
+{"date":"2026-09-15","ts":"2026-09-15T18:23:02+09:00","task_id":"dishes-night","title":"夜の洗い物リセット","area":"dishes","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mu2grs1d240i"}
