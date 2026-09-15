@@ -478,6 +478,7 @@ async function init() {
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;
   $('#spec-link').href = `https://github.com/${rp.owner}/${rp.name}/blob/${branch()}/docs/SPEC.md`;
+  $('#supplies-link').href = `https://github.com/${rp.owner}/${rp.name}/blob/${branch()}/docs/supplies.md`;
   await reload();
 }
 $('#btn-reload').addEventListener('click', reload);

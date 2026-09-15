@@ -1,6 +1,6 @@
 # kaji-quest
 
-自分ひとりが家事・育児を続けるための道具。仕様は [docs/SPEC.md](docs/SPEC.md)。
+自分ひとりが家事・育児を続けるための道具。仕様は [docs/SPEC.md](docs/SPEC.md)、掃除の洗剤と道具の一覧は [docs/supplies.md](docs/supplies.md)。
 運用は GitHub Pages のページ 1 枚で行う。Issue は使わない。
 
 **ページ**: https://peirin1230-ship-it.github.io/kaji-quest/
