@@ -1,0 +1,18 @@
+# routines/weekly.yml — 週 1 回の定期タスク
+#
+# schedule: { type: weekly, day: SAT } のように曜日を指定すると、その曜日だけ「今日のタスク」に並ぶ。
+# 不要なら項目ごと消す。曜日は MON / TUE / WED / THU / FRI / SAT / SUN。
+
+- id: daycare-laundry
+  title: 保育園のシーツ・タオル類を洗って戻す
+  area: laundry
+  schedule: { type: weekly, day: SAT }   # 金曜に持ち帰り → 土曜に洗う → 日曜にセット、の想定
+  est_minutes: 15
+  load: { physical: 1, mental: 2, time_bound: 2 }   # W=1.35 → 換算 20分
+  core: false
+  checklist:
+    - 金曜の持ち帰り袋を全部出す
+    - 名前と数を確認して洗う
+    - 乾いたら月曜の袋にセット
+  tips: []
+  pass_allowed: true

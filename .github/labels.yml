@@ -13,6 +13,9 @@
 - name: area/cleaning
   color: "0e8a16"
   description: 掃除
+- name: area/laundry
+  color: "1abc9c"
+  description: 洗濯
 - name: area/childcare
   color: "d876e3"
   description: 育児（作業ブロック・風呂・寝かしつけ）

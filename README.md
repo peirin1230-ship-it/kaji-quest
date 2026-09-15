@@ -40,6 +40,7 @@
 | したいこと | 場所 |
 |---|---|
 | タスクを足す・減らす・見込みや負荷 W を変える | `routines/daily.yml`（push すると自動で反映） |
+| 週 1 のタスク（保育園のシーツなど）を足す・曜日を変える | `routines/weekly.yml` |
 | 掃除メニューを足す・目安日数や手順を変える | `routines/menu.yml` |
 | コツを足す・直す | `knowledge/cleaning/*.md`（1 コツ 1 ファイル。front matter の `tasks:` に付けたいタスクの id を書く） |
 | 週の目標、段階的引き上げ、パス回数 | `config.yml` |
