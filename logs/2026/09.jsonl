@@ -5,3 +5,4 @@
 {"date":"2026-09-15","ts":"2026-09-15T14:57:40+09:00","task_id":"_tip","title":"重曹は「研磨」と「消臭」で使う","area":"cleaning","status":"tip","tip_id":"cleaning-004","tip_practiced":true,"id":"mu29fo2agpwi"}
 {"date":"2026-09-15","ts":"2026-09-15T15:50:23+09:00","task_id":"washer-tub","title":"洗濯槽クリーナー","area":"cleaning","status":"done","mode":"full","actual_minutes":5,"weight":1.15,"weighted_minutes":5.8,"xp":6,"id":"mu2bbhb68rgj"}
 {"date":"2026-09-15","ts":"2026-09-15T18:22:54+09:00","task_id":"laundry-wash-hang","title":"洗濯（洗う→干す）","area":"laundry","status":"done","mode":"full","actual_minutes":20,"weight":1.2,"weighted_minutes":24,"xp":24,"id":"mu2grln9k8lb"}
+{"date":"2026-09-15","ts":"2026-09-15T18:22:56+09:00","task_id":"laundry-fold-store","title":"洗濯物を取り込んでたたむ・しまう","area":"laundry","status":"done","mode":"full","actual_minutes":15,"weight":1,"weighted_minutes":15,"xp":15,"id":"mu2grn64rtmw"}
