@@ -8,12 +8,14 @@ YAML が壊れていればここで失敗して配信されない。
 import glob
 import json
 import os
+import re
 import shutil
 import sys
 
 import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.S)
 LOAD_RANGES = {"physical": {1, 2, 3}, "mental": {1, 2, 3}, "time_bound": {0, 1, 2}}
 SCHEDULE_TYPES = {"cron", "daily", "weekly", "monthly", "seasonal", "manual", "interval"}
 REQUIRED = ("id", "title", "area", "schedule", "est_minutes", "load")
@@ -53,9 +55,51 @@ def load_routines():
     return routines
 
 
+def load_knowledge():
+    """knowledge/**/*.md（docs/SPEC.md §9.1 の front matter 付き Markdown）を読む。_ 始まりは無視。"""
+    tips, seen = [], set()
+    for path in sorted(glob.glob(os.path.join(ROOT, "knowledge", "**", "*.md"), recursive=True)):
+        if os.path.basename(path).startswith("_"):
+            continue
+        with open(path, encoding="utf-8") as f:
+            m = FRONT_MATTER.match(f.read())
+        if not m:
+            fail(f"{path}: 先頭に --- で囲んだ front matter が要る")
+        meta = yaml.safe_load(m.group(1)) or {}
+        for key in ("id", "title", "area"):
+            if key not in meta:
+                fail(f"{path}: {key} がない")
+        if meta["id"] in seen:
+            fail(f"{path}: id が重複 {meta['id']}")
+        seen.add(meta["id"])
+        meta["body"] = m.group(2).strip()
+        tips.append(meta)
+    return tips
+
+
+def link_tips(routines, tips):
+    """コツの tasks: をルーチンの tips: に合流させ、参照先が存在するか確かめる。"""
+    by_id = {r["id"]: r for r in routines}
+    tip_ids = {t["id"] for t in tips}
+    for t in tips:
+        for rid in t.get("tasks") or []:
+            if rid not in by_id:
+                fail(f"{t['id']}: tasks に無い id {rid}")
+            lst = by_id[rid].get("tips") or []
+            if t["id"] not in lst:
+                lst.append(t["id"])
+            by_id[rid]["tips"] = lst
+    for r in routines:
+        for tid in r.get("tips") or []:
+            if tid not in tip_ids:
+                fail(f"{r['id']}: tips に無い id {tid}")
+
+
 def main():
     out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "_site")
     routines = load_routines()
+    tips = load_knowledge()
+    link_tips(routines, tips)
     with open(os.path.join(ROOT, "config.yml"), encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
     for key in ("owner", "name"):
@@ -67,11 +111,11 @@ def main():
     shutil.copytree(os.path.join(ROOT, "site"), out)
     open(os.path.join(out, ".nojekyll"), "w").close()   # Pages 側の Jekyll 処理を止め、ファイルをそのまま配信する
     os.makedirs(os.path.join(out, "data"), exist_ok=True)
-    for name, data in (("routines.json", routines), ("config.json", config)):
+    for name, data in (("routines.json", routines), ("config.json", config), ("knowledge.json", tips)):
         with open(os.path.join(out, "data", name), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=1, default=str)
             f.write("\n")
-    print(f"built {out}: {len(routines)} routines")
+    print(f"built {out}: {len(routines)} routines, {len(tips)} tips")
 
 
 if __name__ == "__main__":

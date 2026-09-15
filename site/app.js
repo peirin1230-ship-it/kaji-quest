@@ -18,16 +18,18 @@ const MOODS = ['😩', '😕', '😐', '🙂', '😄'];
 const COUNTED = new Set(['done', 'partial', 'passed']);   // ストリークに数える status
 const EARNED = new Set(['done', 'partial']);              // 換算時間に数える status
 
-const PLACES = ['キッチン', '風呂・洗面・トイレ', 'リビング・寝室', '玄関・ベランダ', '家電', '子ども', 'その他'];
+const PLACES = ['キッチン', '風呂・洗面・トイレ', 'リビング・寝室', '玄関・ベランダ', '家電', '子ども用品', 'その他'];
 const BIG_DAYS = 30;                                      // 目安がこれ以上の項目は「大物」枠に 1 件出す
+const TIP_INTERVALS = [1, 3, 7, 30, 90];                  // コツの間隔反復（§9.2）。実践するたび次の段へ、しなければ 1 段戻る
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const round1 = n => Math.round(n * 10) / 10;
 const round2 = n => Math.round(n * 100) / 100;
+const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');   // 太字と改行だけの最小 Markdown
 
 // ---- 日付（すべて JST の暦日で扱う。端末のタイムゾーンに依存しない） ----
 function nowParts(d = new Date()) {
@@ -174,6 +176,7 @@ function render() {
   $('#progress').innerHTML = progressHTML(today, entries);
   $('#tasks').innerHTML = tasksHTML(today, todays, entries);
   $('#menu').innerHTML = menuHTML(today, entries);
+  $('#tip').innerHTML = tipHTML(today, entries);
   $('#quick').innerHTML = quickHTML(todays);
   $('#week').innerHTML = weekHTML(today, entries);
   $('#today-log').innerHTML = logHTML(todays);
@@ -248,6 +251,52 @@ function menuHTML(today, entries) {
     <ul class="tasks">${picks.map(i => menuRowHTML(i, i === big && i.days >= BIG_DAYS)).join('')}</ul>
     <button class="ghost small wide" data-act="menu-toggle">${state.showMenu ? '閉じる' : `全部見る（${items.length} 件）`}</button>${full}`;
 }
+// コツ（knowledge/*.md → data/knowledge.json）。間隔反復: 実践の記録が増えるほど次に出るまでが長くなる
+function tipStats(entries) {
+  const s = {};
+  entries.forEach(e => {
+    if (!e.tip_id) return;
+    const t = s[e.tip_id] || (s[e.tip_id] = { stage: 0, practiced: 0, last: null, next: '0000-00-00' });
+    if (e.tip_practiced) { t.stage = Math.min(t.stage + 1, TIP_INTERVALS.length - 1); t.practiced++; } else t.stage = Math.max(0, t.stage - 1);
+    t.last = e.date; t.next = addDays(e.date, TIP_INTERVALS[t.stage]);
+  });
+  return s;
+}
+const tipNext = (stats, t) => (stats[t.id] ? stats[t.id].next : '0000-00-00');
+const orderTips = (tips, stats) => tips.slice().sort((a, b) => tipNext(stats, a).localeCompare(tipNext(stats, b)) || a.id.localeCompare(b.id));
+function tipForRoutine(r, stats) {
+  const ids = Array.isArray(r.tips) ? r.tips : []; if (!ids.length) return null;
+  const cands = state.tips.filter(t => ids.includes(t.id)); return cands.length ? orderTips(cands, stats)[0] : null;
+}
+function todaysTip(today, stats) {
+  const ordered = orderTips(state.tips, stats); if (!ordered.length) return null;
+  const due = ordered.filter(t => tipNext(stats, t) <= today); const pool = due.length ? due : ordered;
+  const n = pool.length; const idx = (((daysBetween(startMonday(), today) + state.tipOffset) % n) + n) % n;   // 日替わり
+  return pool[idx];
+}
+const tipBoxHTML = t => `<div class="title">${esc(t.title)}</div><div class="body">${md(t.body || '')}</div>${t.action ? `<div class="action">今日やること: ${esc(t.action)}</div>` : ''}`;
+function tipHTML(today, entries) {
+  if (!state.tips.length) return '';
+  const stats = tipStats(entries);
+  // 今日すでに実践したコツがあれば、その日はそれを ✓ 付きで出したまま（「別のコツ」で他も見られる）
+  const practicedIds = entries.filter(e => e.date === today && e.tip_id && e.tip_practiced).map(e => e.tip_id);
+  const kept = state.tipOffset === 0 && practicedIds.length ? state.tips.find(t => t.id === practicedIds[practicedIds.length - 1]) : null;
+  const tip = kept || todaysTip(today, stats); if (!tip) return '';
+  const s = stats[tip.id]; const practicedToday = practicedIds.includes(tip.id);
+  let list = '';
+  if (state.showTips) {
+    const groups = new Map();
+    state.tips.forEach(t => { const k = t.topic || 'その他'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
+    list = [...groups].map(([k, arr]) => `<h3 class="group">${esc(k)}（${arr.length}）</h3>` + arr.map(t => {
+      const st = stats[t.id];
+      return `<div class="tip-item"><div class="title">${esc(t.title)}${st && st.practiced ? ` <span class="badge">実践 ${st.practiced}回</span>` : ''}</div><div class="body">${md(t.body || '')}</div>${t.action ? `<div class="action">今日やること: ${esc(t.action)}</div>` : ''}</div>`;
+    }).join('')).join('');
+  }
+  const done = practicedToday ? '<span class="sub">✓ 今日実践した</span>' : `<button class="primary" data-act="tip-practiced" data-tip="${esc(tip.id)}">実践した</button>`;
+  return `<h2>💡 今日のコツ <span class="sub">${esc(tip.topic || '')}${s && s.practiced ? ` ・ これまで ${s.practiced}回` : ''}</span></h2>
+    <div class="tip">${tipBoxHTML(tip)}</div>
+    <div class="actions left">${done}<button class="ghost small" data-act="tip-next">別のコツ</button><button class="ghost small" data-act="tips-toggle">${state.showTips ? '閉じる' : `コツ一覧（${state.tips.length}）`}</button></div>${list}`;
+}
 function quickHTML(todays) {
   const manual = state.routines.filter(r => r.schedule && r.schedule.type === 'manual');
   if (!manual.length) return '';
@@ -272,7 +321,7 @@ function weekHTML(today, entries) {
 function logHTML(todays) {
   if (!todays.length) return '<h2>今日の記録</h2><p class="empty">まだ何もない。最初の 1 件が一番えらい</p>';
   const rows = [...todays].reverse().map(e => {
-    const time = e.ts ? String(e.ts).slice(11, 16) : ''; const st = e.status === 'partial' ? '70点' : '';
+    const time = e.ts ? String(e.ts).slice(11, 16) : ''; const st = e.status === 'partial' ? '70点' : e.status === 'tip' ? 'コツ' : '';
     return `<li><span class="t">${esc(time)}</span><span class="n">${esc(e.title || e.task_id)}${st ? ` <span class="badge">${st}</span>` : ''}${e.mood ? ' ' + MOODS[e.mood - 1] : ''}${e.learned ? `<div class="note">💡 ${esc(e.learned)}</div>` : ''}</span><span class="m">${EARNED.has(e.status) ? `${e.actual_minutes}分 → ${Math.round(e.weighted_minutes)}` : ''}</span>${e.id ? `<button class="ghost tiny" data-act="undo" data-entry="${esc(e.id)}" aria-label="取り消し">×</button>` : ''}</li>`;
   }).join('');
   return `<h2>今日の記録</h2><ul class="log">${rows}</ul>`;
@@ -303,10 +352,11 @@ async function append(e, message, okMsg) {
     state.streak = await computeStreak(e.date);
   }, okMsg);
 }
-async function record(r, { minutes, mood, learned, status = 'done' }) {
+async function record(r, { minutes, mood, learned, status = 'done', tip_id, tip_practiced }) {
   if (!requireToken()) return;
   const e = baseEntry();
   Object.assign(e, { task_id: r.id, title: r.title, area: r.area, status, mode: 'full', actual_minutes: minutes, weight: weightOf(r), weighted_minutes: weighted(r, minutes), xp: Math.round(weighted(r, minutes)) });
+  if (tip_id) { e.tip_id = tip_id; e.tip_practiced = !!tip_practiced; }
   if (mood) e.mood = mood;
   if (learned) e.learned = learned;
   e.id = uid();
@@ -317,6 +367,13 @@ async function recordPass() {
   const e = baseEntry();
   Object.assign(e, { task_id: '_pass', title: 'パス（ストリーク維持）', status: 'passed', mode: 'full', actual_minutes: 0, weight: 1, weighted_minutes: 0, xp: 0, id: uid() });
   await append(e, `log: pass ${e.date} [skip ci]`, '今日はパス。ストリークは続く');
+}
+async function recordTip(tipId) {
+  if (!requireToken()) return;
+  const tip = state.tips.find(t => t.id === tipId); if (!tip) return;
+  const e = baseEntry();
+  Object.assign(e, { task_id: '_tip', title: tip.title, area: tip.area || 'cleaning', status: 'tip', tip_id: tip.id, tip_practiced: true, id: uid() });
+  await append(e, `log: tip ${tip.id} ${e.date} [skip ci]`, '実践した。次は間を空けて出る');
 }
 async function undo(id) {
   if (!id || !requireToken()) return;
@@ -340,13 +397,19 @@ $('#app').addEventListener('click', ev => {
     case 'undo': undo(b.dataset.entry); break;
     case 'pass': recordPass(); break;
     case 'menu-toggle': state.showMenu = !state.showMenu; render(); break;
+    case 'tip-practiced': recordTip(b.dataset.tip); break;
+    case 'tip-next': state.tipOffset++; render(); break;
+    case 'tips-toggle': state.showTips = !state.showTips; render(); break;
   }
 });
 
 // 詳細ダイアログ（時間・気分・気づき・70点完了）
-let detailRoutine = null, detailMood = 0, detailMin = 0;
+let detailRoutine = null, detailMood = 0, detailMin = 0, detailTip = null;
 function openDetail(r) {
   detailRoutine = r; detailMood = 0; detailMin = +r.est_minutes || 0;
+  detailTip = tipForRoutine(r, tipStats(allEntries()));
+  $('#detail-tip-wrap').hidden = !detailTip;
+  if (detailTip) { $('#detail-tip').innerHTML = tipBoxHTML(detailTip); $('#detail-tip-practiced').checked = false; }
   $('#detail-title').textContent = r.title; $('#detail-w').textContent = `W=${weightOf(r).toFixed(2)}`;
   const opts = [...new Set([+r.est_minutes, ...(r.quick_minutes || []).map(Number), 5, 10, 15, 20, 30, 45, 60, 90, 120].filter(n => n > 0))].sort((a, b) => a - b);
   $('#detail-minutes').innerHTML = opts.map(m => `<button type="button" class="chip${m === detailMin ? ' is-on' : ''}" data-min="${m}">${m}分</button>`).join('');
@@ -367,7 +430,8 @@ $('#dlg-detail').addEventListener('click', ev => {
     if (!(minutes > 0)) { toast('時間を選ぶ', true); return; }
     const learned = $('#detail-note').value.trim().slice(0, 140);
     $('#dlg-detail').close();
-    record(detailRoutine, { minutes, mood: detailMood || undefined, learned: learned || undefined, status: b.id === 'detail-partial' ? 'partial' : 'done' });
+    record(detailRoutine, { minutes, mood: detailMood || undefined, learned: learned || undefined, status: b.id === 'detail-partial' ? 'partial' : 'done',
+      tip_id: detailTip ? detailTip.id : undefined, tip_practiced: detailTip ? $('#detail-tip-practiced').checked : undefined });
   }
 });
 
@@ -406,8 +470,9 @@ async function reload() {
 async function init() {
   try { state.token = localStorage.getItem(TOKEN_KEY) || ''; } catch { state.token = ''; }
   try {
-    const [routines, config] = await Promise.all(['data/routines.json', 'data/config.json'].map(u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); })));
-    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {};
+    const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); });
+    const [routines, config, tips] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => [])]);
+    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : [];
   } catch (e) { $('#tasks').innerHTML = `<p class="empty">設定の読み込みに失敗: ${esc(e.message)}</p>`; return; }
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;

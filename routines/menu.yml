@@ -5,8 +5,9 @@
 # 目安を過ぎても責めない。順番が上がるだけ。足す・減らす・目安日数を変えるのはここだけ。
 #
 #   schedule: { type: interval, days: N }  N 日ごとが目安
-#   place: 一覧の見出し（キッチン / 風呂・洗面・トイレ / リビング・寝室 / 玄関・ベランダ / 家電 / 子ども / その他）
-#   checklist: やり方のコツ。ページの「詳細」で見える
+#   place: 一覧の見出し（キッチン / 風呂・洗面・トイレ / リビング・寝室 / 玄関・ベランダ / 家電 / 子ども用品 / その他）
+#   checklist: やり方の手順。ページの「詳細」で見える
+#   コツ（knowledge/cleaning/*.md）は、コツ側の tasks: にここの id を書くと「詳細」に添付される
 #   load は docs/SPEC.md §6.1（physical 1-3 / mental 1-3 / time_bound 0-2）
 
 # ---- キッチン ----
@@ -386,11 +387,11 @@
     - 電源を切ってから。吹出口のルーバーを開けて拭く
     - 黒い点はカビ。増えたら業者を検討
 
-# ---- 子ども ----
+# ---- 子ども用品（子どもの世話そのものは管理対象外。物の掃除だけ）----
 - id: toys-wipe
   title: おもちゃの拭き掃除・消毒
   area: cleaning
-  place: 子ども
+  place: 子ども用品
   schedule: { type: interval, days: 7 }
   est_minutes: 10
   load: { physical: 1, mental: 1, time_bound: 0 }
@@ -401,7 +402,7 @@
 - id: kids-gear
   title: ベビーカー・チャイルドシートの拭き掃除
   area: cleaning
-  place: 子ども
+  place: 子ども用品
   schedule: { type: interval, days: 30 }
   est_minutes: 15
   load: { physical: 1, mental: 1, time_bound: 0 }
@@ -411,7 +412,7 @@
 - id: kids-storage
   title: 子どもの服・おもちゃのサイズアウト整理
   area: cleaning
-  place: 子ども
+  place: 子ども用品
   schedule: { type: interval, days: 60 }
   est_minutes: 20
   load: { physical: 1, mental: 2, time_bound: 0 }
