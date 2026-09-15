@@ -274,7 +274,8 @@ function todaysTip(today, stats) {
   const n = pool.length; const idx = (((daysBetween(startMonday(), today) + state.tipOffset) % n) + n) % n;   // 日替わり
   return pool[idx];
 }
-const tipBoxHTML = t => `<div class="title">${esc(t.title)}</div><div class="body">${md(t.body || '')}</div>${t.action ? `<div class="action">今日やること: ${esc(t.action)}</div>` : ''}`;
+const LEVEL_JA = { 1: '初級', 2: '中級', 3: '上級' };
+const tipBoxHTML = t => `<div class="title">${esc(t.title)}</div><div class="body">${md(t.body || '')}</div>${t.caution ? `<div class="caution">⚠ ${esc(t.caution)}</div>` : ''}${t.action ? `<div class="action">今日やること: ${esc(t.action)}</div>` : ''}`;
 function tipHTML(today, entries) {
   if (!state.tips.length) return '';
   const stats = tipStats(entries);
@@ -288,12 +289,12 @@ function tipHTML(today, entries) {
     const groups = new Map();
     state.tips.forEach(t => { const k = t.topic || 'その他'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
     list = [...groups].map(([k, arr]) => `<h3 class="group">${esc(k)}（${arr.length}）</h3>` + arr.map(t => {
-      const st = stats[t.id];
-      return `<div class="tip-item"><div class="title">${esc(t.title)}${st && st.practiced ? ` <span class="badge">実践 ${st.practiced}回</span>` : ''}</div><div class="body">${md(t.body || '')}</div>${t.action ? `<div class="action">今日やること: ${esc(t.action)}</div>` : ''}</div>`;
+      const st = stats[t.id]; const lv = LEVEL_JA[t.level] ? `<span class="badge">${LEVEL_JA[t.level]}</span>` : '';
+      return `<div class="tip-item"><div class="title">${esc(t.title)} ${lv}${st && st.practiced ? ` <span class="badge">実践 ${st.practiced}回</span>` : ''}</div><div class="body">${md(t.body || '')}</div>${t.caution ? `<div class="caution">⚠ ${esc(t.caution)}</div>` : ''}${t.action ? `<div class="action">今日やること: ${esc(t.action)}</div>` : ''}</div>`;
     }).join('')).join('');
   }
   const done = practicedToday ? '<span class="sub">✓ 今日実践した</span>' : `<button class="primary" data-act="tip-practiced" data-tip="${esc(tip.id)}">実践した</button>`;
-  return `<h2>💡 今日のコツ <span class="sub">${esc(tip.topic || '')}${s && s.practiced ? ` ・ これまで ${s.practiced}回` : ''}</span></h2>
+  return `<h2>💡 今日のコツ <span class="sub">${esc(tip.topic || '')}${LEVEL_JA[tip.level] ? ` ・ ${LEVEL_JA[tip.level]}` : ''}${s && s.practiced ? ` ・ これまで ${s.practiced}回` : ''}</span></h2>
     <div class="tip">${tipBoxHTML(tip)}</div>
     <div class="actions left">${done}<button class="ghost small" data-act="tip-next">別のコツ</button><button class="ghost small" data-act="tips-toggle">${state.showTips ? '閉じる' : `コツ一覧（${state.tips.length}）`}</button></div>${list}`;
 }

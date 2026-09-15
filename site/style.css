@@ -100,6 +100,8 @@ dialog h3 { margin: 0 0 10px; font-size: 17px; }
 .tip .title { font-weight: 700; margin-bottom: 4px; }
 .tip .body { font-size: 14px; }
 .tip .action { margin-top: 6px; font-size: 13.5px; color: var(--primary); font-weight: 600; }
+.caution { margin-top: 6px; font-size: 13px; color: var(--danger); }
+.tip-item .caution { font-size: 12.5px; }
 #detail-tip { font-size: 13.5px; }
 #detail-tip .title { font-size: 14px; }
 .tip-item { padding: 8px 0; border-top: 1px solid var(--line); }
