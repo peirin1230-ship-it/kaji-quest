@@ -3,3 +3,4 @@
 {"date":"2026-09-15","ts":"2026-09-15T10:59:24+09:00","task_id":"kitchen-drain-pipe","title":"キッチン排水管にパイプ洗浄剤","area":"cleaning","status":"done","mode":"full","actual_minutes":5,"weight":1.25,"weighted_minutes":6.3,"xp":6,"id":"mu20x9n5d141"}
 {"date":"2026-09-15","ts":"2026-09-15T14:56:54+09:00","task_id":"_tip","title":"塩素系と酸性は絶対に混ぜない","area":"cleaning","status":"tip","tip_id":"cleaning-002","tip_practiced":true,"id":"mu29eoy2s7mf"}
 {"date":"2026-09-15","ts":"2026-09-15T14:57:40+09:00","task_id":"_tip","title":"重曹は「研磨」と「消臭」で使う","area":"cleaning","status":"tip","tip_id":"cleaning-004","tip_practiced":true,"id":"mu29fo2agpwi"}
+{"date":"2026-09-15","ts":"2026-09-15T15:50:23+09:00","task_id":"washer-tub","title":"洗濯槽クリーナー","area":"cleaning","status":"done","mode":"full","actual_minutes":5,"weight":1.15,"weighted_minutes":5.8,"xp":6,"id":"mu2bbhb68rgj"}
