@@ -177,6 +177,18 @@
     - 使い終わったタオルで 鏡 → 蛇口 → ボウル の順に拭く
     - 蛇口の根元の水垢はクエン酸
 
+- id: washbasin-drain-hair
+  title: 洗面台の排水栓の髪の毛取り
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 7 }
+  est_minutes: 3
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 排水栓（ポップアップ）を引き上げて髪の毛と石けんカスを取る
+    - ギザギザのスティックを差して奥の髪を引き出す
+    - 栓を戻して 45℃ くらいの湯を流す
+
 - id: toilet
   title: トイレ（便器・床・壁の下）
   area: cleaning
