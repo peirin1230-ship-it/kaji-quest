@@ -125,3 +125,17 @@
   checklist: []
   tips: []
   pass_allowed: false
+
+- id: detergent-refill
+  title: 洗剤の補充（詰め替え）
+  area: nameless
+  schedule: { type: manual }    # 切れたときにやる家事。終わってから 1 タップ
+  est_minutes: 5
+  quick_minutes: [3, 5, 10]
+  load: { physical: 1, mental: 1, time_bound: 0 }   # W=1.00
+  core: false
+  checklist:
+    - 食器用洗剤・ハンドソープ・シャンプー・洗濯洗剤・詰め替え用のストック
+    - 詰め替えたら、ストックが最後の 1 つなら買い物リストへ
+  tips: []
+  pass_allowed: false
