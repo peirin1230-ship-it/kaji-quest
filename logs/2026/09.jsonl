@@ -17,4 +17,3 @@
 {"date":"2026-09-17","ts":"2026-09-17T23:26:46+09:00","task_id":"dishes-night","title":"夜の洗い物リセット","area":"dishes","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mu5mi2u2r4hb"}
 {"date":"2026-09-17","ts":"2026-09-17T23:26:52+09:00","task_id":"laundry-fold-store","title":"洗濯物を取り込んでたたむ・しまう","area":"laundry","status":"done","mode":"full","actual_minutes":15,"weight":1,"weighted_minutes":15,"xp":15,"id":"mu5mi7rjn77d"}
 {"date":"2026-09-17","ts":"2026-09-17T23:26:56+09:00","task_id":"garbage","title":"ゴミまとめ・ゴミ出し","area":"nameless","status":"done","mode":"full","actual_minutes":5,"weight":1.35,"weighted_minutes":6.8,"xp":7,"id":"mu5miaui4n19"}
-{"date":"2026-09-17","ts":"2026-09-17T23:28:42+09:00","task_id":"nameless-adhoc","title":"名もなき家事","area":"nameless","status":"done","mode":"full","actual_minutes":10,"weight":1.15,"weighted_minutes":11.5,"xp":12,"id":"mu5mkkzrsw1g"}
