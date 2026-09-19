@@ -26,7 +26,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '' };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '' };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -204,6 +204,7 @@ function render() {
   $('#tasks').innerHTML = tasksHTML(date, todays, entries);
   $('#menu').innerHTML = menuHTML(date, entries);
   $('#tip').innerHTML = tipHTML(date, entries);
+  $('#basics').innerHTML = basicsHTML();
   $('#quick').innerHTML = quickHTML(todays);
   $('#week').innerHTML = weekHTML(today, date, entries);
   $('#today-log').innerHTML = logHTML(date, todays);
@@ -343,6 +344,23 @@ function tipHTML(date, entries) {
     <div class="tip">${tipBoxHTML(tip)}</div>
     <div class="actions left">${done}<button class="ghost small" data-act="tip-next">別のコツ</button><button class="ghost small" data-act="tips-toggle">${state.showTips ? '閉じる' : `コツ一覧（${state.tips.length}）`}</button></div>${list}`;
 }
+// 掃除の教科書（knowledge/basics/*.md のやさしい版 → data/basics.json）。1 章ずつ開閉
+const chapterSrcUrl = c => c.source ? `https://github.com/${repo().owner}/${repo().name}/blob/${branch()}/knowledge/reference/${c.source}` : '';
+function basicsHTML() {
+  if (!state.basics.length) return '';
+  const rows = state.basics.map((c, i) => {
+    const open = state.openChapter === c.id;
+    return `<div class="chapter${open ? ' is-open' : ''}" id="ch-${esc(c.id)}">
+      <button class="chapter-head" data-act="chapter" data-ch="${esc(c.id)}" aria-expanded="${open}"><span class="num">${i}</span><span class="ttl">${esc(c.title)}</span><span class="sum">${esc(c.summary || '')}</span><span class="arrow">${open ? '▾' : '▸'}</span></button>
+      ${open ? `<div class="chapter-body">${c.html}${chapterSrcUrl(c) ? `<p class="src"><a href="${esc(chapterSrcUrl(c))}" target="_blank" rel="noopener">くわしい元の資料（原文）を開く</a></p>` : ''}<button class="ghost small wide" data-act="chapter" data-ch="${esc(c.id)}">閉じる</button></div>` : ''}
+    </div>`;
+  }).join('');
+  return `<h2>📘 掃除の教科書 <span class="sub">やさしい版。数字や決まりは元の資料で確かめる</span></h2>${rows}`;
+}
+function openChapter(id, scroll) {
+  state.openChapter = state.openChapter === id && !scroll ? '' : id; render();
+  if (scroll) { const el = document.getElementById('ch-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+}
 function quickHTML(todays) {
   const manual = state.routines.filter(r => r.schedule && r.schedule.type === 'manual');
   if (!manual.length) return '';
@@ -383,6 +401,7 @@ function renderSearch(date, todays, entries) {
   const routines = state.routines.filter(r => hit([r.title, r.id, r.place, AREA_JA[r.area], ...(r.checklist || [])].join(' '))).slice(0, 12);
   const tips = state.tips.filter(t => hit([t.title, t.body, t.action, t.topic, ...(t.tags || [])].join(' '))).slice(0, 10);
   const logs = entries.filter(e => hit([e.title, e.learned, e.task_id].join(' '))).slice(-8).reverse();
+  const chapters = state.basics.filter(c => hit([c.title, c.summary, c.text].join(' ')));
   const stats = tipStats(entries);
   const rHtml = routines.map(r => {
     const done = todays.filter(e => e.task_id === r.id && EARNED.has(e.status)); const s = r.schedule || {};
@@ -391,6 +410,7 @@ function renderSearch(date, todays, entries) {
   }).join('');
   const html = (routines.length ? `<h3 class="group">タスク（${routines.length}）</h3><ul class="tasks">${rHtml}</ul>` : '')
     + (tips.length ? `<h3 class="group">コツ（${tips.length}）</h3>${tips.map(t => tipItemHTML(t, stats, true)).join('')}` : '')
+    + (chapters.length ? `<h3 class="group">教科書（${chapters.length}）</h3><ul class="tasks">${chapters.map(c => `<li class="task"><div class="main"><div class="title">${esc(c.title)}</div><div class="meta">${esc(c.summary || '')}</div></div><div class="btns"><button class="ghost small" data-act="chapter-open" data-ch="${esc(c.id)}">開く</button></div></li>`).join('')}</ul>` : '')
     + (logs.length ? `<h3 class="group">記録（新しい順 ${logs.length} 件）</h3><ul class="log">${logs.map(e => logRowHTML(e, true)).join('')}</ul>` : '');
   box.innerHTML = html || '<p class="empty">見つからない</p>';
 }
@@ -465,7 +485,8 @@ async function setDate(d) {
 
 $('#app').addEventListener('click', ev => {
   const day = ev.target.closest('.day[data-date]'); if (day && !state.busy) { setDate(day.dataset.date); return; }
-  const b = ev.target.closest('button[data-act]'); if (!b || b.disabled || state.busy) return;
+  const b = ev.target.closest('button[data-act]'); if (!b || b.disabled) return;
+  if (state.busy && !/^chapter/.test(b.dataset.act) && !/toggle|tip-next/.test(b.dataset.act)) return;
   const host = b.closest('[data-id]'); const id = b.dataset.id || (host ? host.dataset.id : '');
   const r = routineById(id);
   switch (b.dataset.act) {
@@ -478,6 +499,8 @@ $('#app').addEventListener('click', ev => {
     case 'tip-practiced': recordTip(b.dataset.tip); break;
     case 'tip-next': state.tipOffset++; render(); break;
     case 'tips-toggle': state.showTips = !state.showTips; render(); break;
+    case 'chapter': openChapter(b.dataset.ch, false); break;
+    case 'chapter-open': openChapter(b.dataset.ch, true); break;
   }
 });
 
@@ -562,8 +585,8 @@ async function init() {
   try { state.token = localStorage.getItem(TOKEN_KEY) || ''; } catch { state.token = ''; }
   try {
     const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); });
-    const [routines, config, tips] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => [])]);
-    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : [];
+    const [routines, config, tips, basics] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => []), get('data/basics.json').catch(() => [])]);
+    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : [];
   } catch (e) { $('#tasks').innerHTML = `<p class="empty">設定の読み込みに失敗: ${esc(e.message)}</p>`; return; }
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;

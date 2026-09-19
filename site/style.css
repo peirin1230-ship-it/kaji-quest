@@ -134,3 +134,24 @@ body.busy::before { content: ""; position: fixed; top: 0; left: 0; right: 0; hei
 #search-results { margin-top: 8px; }
 h3.group.slot { font-size: 15px; color: var(--text); margin: 12px 0 2px; }
 .day { cursor: pointer; }
+
+/* 教科書 */
+.chapter { border-top: 1px solid var(--line); }
+.chapter:first-of-type { border-top: 0; }
+.chapter-head { display: grid; grid-template-columns: 28px 1fr 20px; grid-template-areas: "num ttl arrow" "num sum arrow"; align-items: center; width: 100%; text-align: left; background: none; border: 0; padding: 10px 0; color: var(--text); gap: 0 8px; }
+.chapter-head .num { grid-area: num; width: 26px; height: 26px; border-radius: 50%; background: var(--chip); color: var(--muted); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.chapter-head .ttl { grid-area: ttl; font-weight: 600; }
+.chapter-head .sum { grid-area: sum; font-size: 12.5px; color: var(--muted); }
+.chapter-head .arrow { grid-area: arrow; color: var(--muted); text-align: right; }
+.chapter.is-open .chapter-head .ttl { color: var(--primary); }
+.chapter-body { padding: 0 0 12px; font-size: 14.5px; line-height: 1.7; }
+.chapter-body h2 { display: block; font-size: 15px; margin: 16px 0 6px; color: var(--primary); }
+.chapter-body h3 { font-size: 14px; margin: 12px 0 4px; }
+.chapter-body p { margin: 6px 0; }
+.chapter-body ul, .chapter-body ol { margin: 6px 0; padding-left: 20px; }
+.chapter-body li { margin: 3px 0; }
+.chapter-body table { display: block; overflow-x: auto; max-width: 100%; border-collapse: collapse; font-size: 13px; margin: 8px 0; -webkit-overflow-scrolling: touch; }
+.chapter-body th, .chapter-body td { border: 1px solid var(--line); padding: 5px 8px; vertical-align: top; text-align: left; min-width: 4em; }
+.chapter-body th { background: var(--chip); font-weight: 600; white-space: nowrap; }
+.chapter-body .src { font-size: 13px; }
+.chapter-body .src a { color: var(--primary); }

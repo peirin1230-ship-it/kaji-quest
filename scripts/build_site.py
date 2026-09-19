@@ -59,8 +59,9 @@ def load_knowledge():
     """knowledge/**/*.md（docs/SPEC.md §9.1 の front matter 付き Markdown）を読む。_ 始まりは無視。"""
     tips, seen = [], set()
     for path in sorted(glob.glob(os.path.join(ROOT, "knowledge", "**", "*.md"), recursive=True)):
-        if os.path.basename(path).startswith("_"):
-            continue
+        rel = os.path.relpath(path, os.path.join(ROOT, "knowledge"))
+        if os.path.basename(path).startswith("_") or rel.split(os.sep)[0] in ("reference", "basics"):
+            continue   # reference/ は原文の資料、basics/ はやさしい版の教科書（別扱い）
         with open(path, encoding="utf-8") as f:
             m = FRONT_MATTER.match(f.read())
         if not m:
@@ -75,6 +76,38 @@ def load_knowledge():
         meta["body"] = m.group(2).strip()
         tips.append(meta)
     return tips
+
+
+def load_basics():
+    """knowledge/basics/*.md（やさしい版の教科書）を章ごとに HTML 化する。source: は knowledge/reference/ の原文ファイル名。"""
+    import html as htmlmod
+    try:
+        import markdown
+    except ImportError:
+        fail("python-markdown が要る: pip install markdown")
+    chapters = []
+    for path in sorted(glob.glob(os.path.join(ROOT, "knowledge", "basics", "*.md"))):
+        with open(path, encoding="utf-8") as f:
+            m = FRONT_MATTER.match(f.read())
+        if not m:
+            fail(f"{path}: 先頭に --- で囲んだ front matter が要る")
+        meta = yaml.safe_load(m.group(1)) or {}
+        for key in ("id", "title"):
+            if key not in meta:
+                fail(f"{path}: {key} がない")
+        body = m.group(2).strip()
+        rendered = markdown.markdown(body, extensions=["tables"], output_format="html")
+        text = re.sub(r"<[^>]+>", " ", rendered)
+        text = re.sub(r"\s+", " ", htmlmod.unescape(text)).strip()
+        src = meta.get("source")
+        if src and not os.path.exists(os.path.join(ROOT, "knowledge", "reference", src)):
+            fail(f"{path}: source の原文 {src} が knowledge/reference に無い")
+        chapters.append({
+            "id": meta["id"], "title": meta["title"], "order": meta.get("order", 999),
+            "summary": meta.get("summary", ""), "source": src, "html": rendered, "text": text,
+        })
+    chapters.sort(key=lambda c: (c["order"], c["id"]))
+    return chapters
 
 
 def link_tips(routines, tips):
@@ -99,6 +132,7 @@ def main():
     out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else "_site")
     routines = load_routines()
     tips = load_knowledge()
+    basics = load_basics()
     link_tips(routines, tips)
     with open(os.path.join(ROOT, "config.yml"), encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
@@ -111,11 +145,11 @@ def main():
     shutil.copytree(os.path.join(ROOT, "site"), out)
     open(os.path.join(out, ".nojekyll"), "w").close()   # Pages 側の Jekyll 処理を止め、ファイルをそのまま配信する
     os.makedirs(os.path.join(out, "data"), exist_ok=True)
-    for name, data in (("routines.json", routines), ("config.json", config), ("knowledge.json", tips)):
+    for name, data in (("routines.json", routines), ("config.json", config), ("knowledge.json", tips), ("basics.json", basics)):
         with open(os.path.join(out, "data", name), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=1, default=str)
             f.write("\n")
-    print(f"built {out}: {len(routines)} routines, {len(tips)} tips")
+    print(f"built {out}: {len(routines)} routines, {len(tips)} tips, {len(basics)} chapters")
 
 
 if __name__ == "__main__":
