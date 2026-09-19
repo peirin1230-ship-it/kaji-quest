@@ -5,7 +5,7 @@ area: cleaning
 topic: キッチン
 level: 2
 tags: [衛生]
-tasks: [dishes-night]
+tasks: [dishes]
 action: まな板を裏返して傷と反りを見る
 ---
 

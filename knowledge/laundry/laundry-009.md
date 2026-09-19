@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [基本]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: 新品の濃色があれば今回だけ分ける
 ---
 

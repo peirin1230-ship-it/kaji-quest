@@ -120,3 +120,17 @@ dialog h3 { margin: 0 0 10px; font-size: 17px; }
 .toast.err { background: var(--danger); }
 body.busy::before { content: ""; position: fixed; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, var(--primary), transparent); animation: slide 1s linear infinite; z-index: 20; }
 @keyframes slide { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+
+/* 日付バー・検索・時間帯 */
+.top { flex-wrap: wrap; gap: 6px; }
+.datebar { display: flex; align-items: center; gap: 2px; }
+#date-input { font: inherit; font-weight: 700; font-size: 18px; border: 0; background: transparent; color: var(--text); padding: 4px 0; width: 9.2em; min-height: 44px; }
+#date-input::-webkit-calendar-picker-indicator { opacity: .6; }
+.dow { font-weight: 700; font-size: 18px; margin-right: 2px; }
+.tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.tools .streak { margin-right: 4px; }
+#q { width: 100%; font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); color: var(--text); -webkit-appearance: none; }
+#search-results:empty { display: none; }
+#search-results { margin-top: 8px; }
+h3.group.slot { font-size: 15px; color: var(--text); margin: 12px 0 2px; }
+.day { cursor: pointer; }

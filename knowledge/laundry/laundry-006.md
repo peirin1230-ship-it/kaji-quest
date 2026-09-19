@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [部屋干し, 臭い]
-tasks: [laundry-wash-hang]
+tasks: [laundry-hang]
 action: 部屋干しに扇風機を当てる位置を決める
 ---
 

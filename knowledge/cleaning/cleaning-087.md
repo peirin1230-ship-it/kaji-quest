@@ -5,7 +5,7 @@ area: cleaning
 topic: キッチン
 level: 2
 tags: [つけ置き]
-tasks: [dishes-night]
+tasks: [dishes]
 action: 水筒のパッキンを外して過炭酸で 30 分つけ置きする
 caution: ステンレスに塩素系は不可。ボトルの中に洗浄液を密閉しない
 ---

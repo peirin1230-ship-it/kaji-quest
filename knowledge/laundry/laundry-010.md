@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 2
 tags: [臭い, つけ置き]
-tasks: [laundry-wash-hang, washer-tub]
+tasks: [laundry-wash, washer-tub]
 action: 今週末、タオルだけ酸素系でつけ置きしてから洗う
 ---
 

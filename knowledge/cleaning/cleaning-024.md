@@ -5,7 +5,7 @@ area: cleaning
 topic: キッチン
 level: 1
 tags: [衛生]
-tasks: [dishes-night]
+tasks: [dishes]
 action: 今夜の洗い物の最後に、スポンジとまな板に熱湯をかける
 ---
 

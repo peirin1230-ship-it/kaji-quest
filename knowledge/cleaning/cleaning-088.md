@@ -5,7 +5,7 @@ area: cleaning
 topic: キッチン
 level: 1
 tags: [家電]
-tasks: [dishes-night]
+tasks: [dishes]
 action: 食洗機のフィルターを外して洗う
 ---
 

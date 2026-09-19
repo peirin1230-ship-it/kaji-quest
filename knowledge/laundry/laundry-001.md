@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [基本]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: 洗剤キャップの線を見て、1 回分の量を決める
 ---
 

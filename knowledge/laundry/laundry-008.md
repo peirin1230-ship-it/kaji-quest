@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [基本]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: ネットに入れる物の基準を決めて、カゴを 2 つに分ける
 ---
 

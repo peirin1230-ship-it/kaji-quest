@@ -7,70 +7,21 @@
 #   schedule.type: cron   → 毎日「今日のタスク」に並ぶ（expr の曜日欄で曜日指定も可）
 #   schedule.type: weekly → その曜日だけ並ぶ（day: SAT など）
 #   schedule.type: manual → 「後から記録」に並ぶ。quick_minutes の時間チップを 1 タップで記録
+#   slots: [morning, noon, night] → 朝・昼・夜のどの欄に出すか。複数書くと欄ごとに完了を記録できる。
+#           省略時は expr の時刻から自動（4〜10 時=朝 / 11〜16 時=昼 / 17 時以降=夜）
 #   load.physical   1-3  身体的きつさ        (1→+0.0 / 2→+0.1  / 3→+0.2)
 #   load.mental     1-3  段取り・判断の重さ  (1→+0.0 / 2→+0.15 / 3→+0.3)
 #   load.time_bound 0-2  時間帯の縛り        (0→+0.0 / 1→+0.1  / 2→+0.2)
 #   W = 1.0 + 各加点 / 換算時間 = 実時間 × W
 #   core: true は省エネモードでも残す「絶対防衛ライン」
-#   tips: ナレッジ ID（Phase 3 で追加。今は空）
+#   同じタスクを 1 日に何回でも小分けに記録できる（完了 → 追加）。est_minutes は 1 回分の見込み。
 
-- id: dishes-night
-  title: 夜の洗い物リセット
-  area: dishes
-  schedule:
-    type: cron
-    expr: "0 21 * * *"          # JST 表記
-  est_minutes: 15
-  load: { physical: 2, mental: 1, time_bound: 1 }   # W=1.20 → 換算 18分
-  core: true
-  checklist:
-    - 食器を洗う／食洗機を回す
-    - シンクの水気を拭く
-    - 排水口カゴを洗う
-    - 三角コーナーのゴミを捨てる
-  tips: []
-  pass_allowed: true
-
-- id: cooking-next-day
-  title: 翌日分の仕込み
-  area: cooking
-  schedule:
-    type: cron
-    expr: "30 19 * * *"         # 帰宅後
-  est_minutes: 45
-  load: { physical: 2, mental: 3, time_bound: 1 }   # W=1.50 → 換算 68分
-  core: false
-  checklist:
-    - 献立を決める（主菜1＋副菜1）
-    - 不足食材を確認する（なければ在庫で組む）
-    - 主菜を仕込む
-    - 副菜を仕込む
-    - 粗熱を取って冷蔵し、日付を書く
-  tips: []
-  pass_allowed: true
-
-- id: bath-clean
-  title: 風呂掃除
-  area: cleaning
-  schedule:
-    type: cron
-    expr: "0 7 * * *"           # 時間帯は自由（出勤前 or 入浴後）
-  est_minutes: 10
-  load: { physical: 2, mental: 1, time_bound: 0 }   # W=1.10 → 換算 11分
-  core: false
-  checklist:
-    - 浴槽を洗う
-    - 排水口の髪の毛を取る
-    - 壁・床を流して水気を切り、換気扇を回す
-  tips: []
-  pass_allowed: true
-
+# ---- 朝 ----
 - id: garbage
   title: ゴミまとめ・ゴミ出し
   area: nameless
-  schedule:
-    type: cron
-    expr: "0 7 * * *"           # 収集は朝。収集区分は自治体カレンダーに従う
+  schedule: { type: cron, expr: "0 7 * * *" }   # 収集は朝。収集区分は自治体カレンダーに従う
+  slots: [morning]
   est_minutes: 5
   load: { physical: 1, mental: 2, time_bound: 2 }   # W=1.35 → 換算 7分
   core: true
@@ -79,31 +30,98 @@
     - 各部屋のゴミを集めて袋をまとめる
     - 新しい袋をセットする
     - 収集日なら集積所へ出す
-  tips: []
   pass_allowed: true
 
-- id: laundry-wash-hang
-  title: 洗濯（洗う→干す）
+- id: bath-clean
+  title: 風呂掃除
+  area: cleaning
+  schedule: { type: cron, expr: "0 7 * * *" }   # 入浴後派なら slots を [night] に
+  slots: [morning]
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }   # W=1.10 → 換算 11分
+  core: false
+  checklist:
+    - 浴槽を洗う
+    - 排水口の髪の毛を取る
+    - 壁・床を流して水気を切り、換気扇を回す
+  pass_allowed: true
+
+# ---- 朝と夜の両方 ----
+- id: dishes
+  title: 洗い物リセット
+  area: dishes
+  schedule: { type: cron, expr: "0 21 * * *" }
+  slots: [morning, night]                            # 朝と夜で別々に完了できる
+  est_minutes: 15
+  load: { physical: 2, mental: 1, time_bound: 1 }   # W=1.20 → 換算 18分（1 回分）
+  core: true
+  checklist:
+    - 食器を洗う／食洗機を回す
+    - シンクの水気を拭く
+    - 排水口カゴを洗う
+    - 三角コーナーのゴミを捨てる
+  pass_allowed: true
+
+# ---- 昼 ----
+- id: menu-decide
+  title: 翌日の献立を決める
+  area: cooking
+  schedule: { type: cron, expr: "0 12 * * *" }   # 昼休みにスマホで 5 分
+  slots: [noon]
+  est_minutes: 5
+  load: { physical: 1, mental: 3, time_bound: 0 }   # W=1.30 → 換算 7分
+  core: false
+  checklist:
+    - 主菜 1 つと副菜 1 つを決める
+    - 足りない食材を買い物リストへ
+  pass_allowed: true
+
+# ---- 夜 ----
+- id: cooking-prep
+  title: 翌日分の仕込み
+  area: cooking
+  schedule: { type: cron, expr: "30 19 * * *" }  # 帰宅後
+  slots: [night]
+  est_minutes: 40
+  load: { physical: 2, mental: 2, time_bound: 1 }   # W=1.35 → 換算 54分
+  core: false
+  checklist:
+    - 主菜を仕込む
+    - 副菜を仕込む
+    - 粗熱を取って冷蔵し、日付を書く
+  pass_allowed: true
+
+- id: laundry-wash
+  title: 洗濯機を回す
   area: laundry
-  schedule:
-    type: cron
-    expr: "30 20 * * *"         # 夜に回して部屋干しの想定。朝派なら "0 6 * * *" に変える
-  est_minutes: 20
-  load: { physical: 2, mental: 1, time_bound: 1 }   # W=1.20 → 換算 24分
+  schedule: { type: cron, expr: "0 20 * * *" }   # 朝派なら slots を [morning] に
+  slots: [night]
+  est_minutes: 5
+  load: { physical: 1, mental: 1, time_bound: 1 }   # W=1.10 → 換算 6分
   core: true
   checklist:
     - カゴの中身をそのまま洗濯機へ（ネット物は分けてある前提）
     - 洗剤は規定量
-    - 振ってしわを伸ばし、間隔 10cm で干す。部屋干しなら風を当てる
-  tips: []
+  pass_allowed: true
+
+- id: laundry-hang
+  title: 洗濯物を干す
+  area: laundry
+  schedule: { type: cron, expr: "0 21 * * *" }
+  slots: [night]
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 1 }   # W=1.20 → 換算 12分
+  core: true
+  checklist:
+    - 振ってしわを伸ばす
+    - 間隔 10cm で干す。部屋干しなら風を当てる
   pass_allowed: true
 
 - id: laundry-fold-store
   title: 洗濯物を取り込んでたたむ・しまう
   area: laundry
-  schedule:
-    type: cron
-    expr: "0 20 * * *"
+  schedule: { type: cron, expr: "0 20 * * *" }
+  slots: [night]
   est_minutes: 15
   load: { physical: 1, mental: 1, time_bound: 0 }   # W=1.00 → 換算 15分
   core: false
@@ -111,19 +129,18 @@
     - 乾いたものを取り込む
     - ハンガーのものはそのままクローゼットへ
     - 子ども服は引き出しに放り込む。靴下はペアにしない（同じ種類に統一）
-  tips: []
   pass_allowed: true
 
+# ---- 後から記録（時間帯は記録したときの時刻で自動。詳細で変えられる）----
 - id: nameless-adhoc
   title: 名もなき家事
   area: nameless
   schedule: { type: manual }    # 「これも家事だった」を見つけたら 1 タップ。見つけたこと自体が成果
   est_minutes: 10
-  quick_minutes: [5, 10, 15, 30]
+  quick_minutes: [3, 5, 10, 15, 30]
   load: { physical: 1, mental: 2, time_bound: 0 }   # W=1.15
   core: false
   checklist: []
-  tips: []
   pass_allowed: false
 
 - id: detergent-refill
@@ -137,5 +154,4 @@
   checklist:
     - 食器用洗剤・ハンドソープ・シャンプー・洗濯洗剤・詰め替え用のストック
     - 詰め替えたら、ストックが最後の 1 つなら買い物リストへ
-  tips: []
   pass_allowed: false

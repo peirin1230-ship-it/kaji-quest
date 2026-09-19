@@ -5,7 +5,7 @@ area: cleaning
 topic: キッチン
 level: 1
 tags: [臭い]
-tasks: [dishes-night]
+tasks: [dishes]
 action: 炊飯器の内蓋を外して洗い、蒸気口を確かめる
 ---
 

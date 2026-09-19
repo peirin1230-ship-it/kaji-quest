@@ -5,7 +5,7 @@ area: cleaning
 topic: 素材別の注意
 level: 1
 tags: [キッチン]
-tasks: [dishes-night]
+tasks: [dishes]
 action: フライパンを冷ましてから洗う順番に変える
 ---
 

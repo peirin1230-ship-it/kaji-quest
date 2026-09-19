@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 2
 tags: [子ども, 衛生]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: つけ置き用の小さなバケツを洗面所に置く
 caution: 塩素系漂白剤は色落ちと生地傷みの元。酸素系を使う
 ---

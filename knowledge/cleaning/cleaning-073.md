@@ -5,7 +5,7 @@ area: cleaning
 topic: 素材別の注意
 level: 2
 tags: [キッチン, 注意]
-tasks: [dishes-night]
+tasks: [dishes]
 action: 家の鍋の材質を見て、アルミのものを覚えておく
 ---
 

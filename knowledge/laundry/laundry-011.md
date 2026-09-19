@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [仕組み, 時短]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: 脱衣所のカゴを 2 つにする
 ---
 

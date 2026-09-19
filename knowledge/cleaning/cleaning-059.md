@@ -5,7 +5,7 @@ area: cleaning
 topic: 洗剤の使い分け
 level: 2
 tags: [洗剤, つけ置き]
-tasks: [washer-tub, bath-drain-parts, dishes-night]
+tasks: [washer-tub, bath-drain-parts, dishes]
 action: 排水口の部品を 50℃ の湯と過炭酸で 30 分つけ置きする
 caution: 溶かした液を密閉容器やペットボトルに入れない（ガスで膨らむ）
 ---

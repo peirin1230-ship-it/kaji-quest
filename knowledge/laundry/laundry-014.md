@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [仕組み]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: 今日、量が少なくても回す
 ---
 

@@ -5,7 +5,7 @@ area: cleaning
 topic: キッチン
 level: 1
 tags: [予防, 水垢]
-tasks: [dishes-night, sink-polish]
+tasks: [dishes, sink-polish]
 action: 今夜の洗い物の最後にシンクを拭いて終える
 ---
 

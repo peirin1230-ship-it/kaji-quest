@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [子ども, シミ]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: 食べこぼしの服に食器用洗剤を付けてからカゴへ入れる
 ---
 

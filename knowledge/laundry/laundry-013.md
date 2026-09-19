@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [時短]
-tasks: [laundry-wash-hang]
+tasks: [laundry-hang]
 action: 乾燥機か浴室乾燥がある場合、雨の日は使うと決める
 ---
 

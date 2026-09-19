@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 1
 tags: [タオル]
-tasks: [laundry-wash-hang]
+tasks: [laundry-wash]
 action: 次の洗濯からタオルの回は柔軟剤を入れない
 ---
 

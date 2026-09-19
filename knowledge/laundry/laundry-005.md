@@ -5,7 +5,7 @@ area: laundry
 topic: 洗濯
 level: 2
 tags: [子ども, シミ]
-tasks: [laundry-wash-hang, daycare-laundry]
+tasks: [laundry-wash, daycare-laundry]
 action: 泥の付いた服は洗わずに一度干す
 ---
 

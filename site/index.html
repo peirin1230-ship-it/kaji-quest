@@ -14,17 +14,25 @@
 </head>
 <body>
 <header class="top">
-  <div>
-    <div class="today" id="today">—</div>
-    <div class="streak" id="streak">🔥 —</div>
+  <div class="datebar">
+    <button class="icon-btn" id="btn-date-prev" aria-label="前の日">‹</button>
+    <input type="date" id="date-input" aria-label="日付">
+    <span class="dow" id="date-dow"></span>
+    <button class="icon-btn" id="btn-date-next" aria-label="次の日">›</button>
+    <button class="ghost small" id="btn-today" hidden>今日へ</button>
   </div>
-  <div>
+  <div class="tools">
+    <span class="streak" id="streak">🔥 —</span>
     <button class="icon-btn" id="btn-reload" aria-label="更新" title="更新">↻</button>
     <button class="icon-btn" id="btn-settings" aria-label="設定" title="設定">⚙️</button>
   </div>
 </header>
 
 <main id="app">
+  <section class="card" id="search">
+    <input type="search" id="q" placeholder="検索: タスク・メニュー・コツ・記録" autocomplete="off" autocapitalize="off">
+    <div id="search-results"></div>
+  </section>
   <section class="card" id="progress"></section>
   <section class="card" id="tasks"><p class="empty">読み込み中…</p></section>
   <section class="card" id="menu"></section>
@@ -55,6 +63,10 @@
     <label>所要時間</label>
     <div class="chips" id="detail-minutes"></div>
     <input type="number" id="detail-custom" inputmode="numeric" min="1" max="600" placeholder="それ以外なら分を入力">
+  </div>
+  <div class="field">
+    <label>時間帯</label>
+    <div class="chips" id="detail-slot"></div>
   </div>
   <div class="field">
     <label>気分（任意）</label>
