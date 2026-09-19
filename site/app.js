@@ -116,7 +116,9 @@ function ghHeaders(json) {
 const contentsUrl = ym => `${API}/repos/${repo().owner}/${repo().name}/contents/logs/${ym}.jsonl`;
 const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
 const b64encode = s => btoa(Array.from(new TextEncoder().encode(s), b => String.fromCharCode(b)).join(''));
-const parseLine = l => { try { const e = JSON.parse(l); return e && typeof e === 'object' ? e : null; } catch { return null; } };
+// 分割・改名した古い id を今の id に読み替える（過去の記録を今のタスクに結びつけるため）
+const ALIASES = { 'dishes-night': 'dishes', 'laundry-wash-hang': 'laundry-wash', 'cooking-next-day': 'cooking-prep' };
+const parseLine = l => { try { const e = JSON.parse(l); if (!e || typeof e !== 'object') return null; if (ALIASES[e.task_id]) e.task_id = ALIASES[e.task_id]; return e; } catch { return null; } };
 
 async function fetchMonth(ym) {
   const res = await fetch(`${contentsUrl(ym)}?ref=${encodeURIComponent(branch())}`, { headers: ghHeaders(false), cache: 'no-store' });
