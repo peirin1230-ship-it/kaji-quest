@@ -367,6 +367,17 @@
     - 靴を出して靴箱の棚を拭く → たたきを水拭き
     - 履かない靴は処分候補
 
+- id: garden-weeding
+  title: 庭の草取り・除草
+  area: cleaning
+  place: 玄関・ベランダ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 20
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 雨の翌日は根ごと抜きやすい
+    - 除草剤は風のない日に。子どもが触らない時間帯で
+
 - id: balcony
   title: ベランダの掃き掃除と排水口
   area: cleaning
@@ -447,7 +458,7 @@
     - 残り 1 つになったものを注文
 
 - id: mail-papers
-  title: 郵便・書類の処理
+  title: 郵便・書類・発送の処理
   area: nameless
   place: その他
   schedule: { type: interval, days: 7 }

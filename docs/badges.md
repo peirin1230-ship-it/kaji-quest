@@ -1,0 +1,129 @@
+# バッジ一覧
+
+docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わない運用）に合わせて定義したもの。
+ページは記録（logs/）からバッジを毎回計算する。一度取ったバッジは、記録が残るかぎり残る（剥奪しない）。
+足すのは簡単で、減らさないのが運用方針。無理をしないと取れない条件（深夜・連続◯時間など）は作らない。
+
+- `condition.type`: `count`（回数。task / tasks / area / status / learned / practiced で絞る）、`streak`（連続日数）、
+  `weighted_total`（累計換算分。area で絞れる）、`target_hit`（週次目標の達成。gte / consecutive / ratio_gte）、
+  `level`（領域レベル。area / any / all / areas_gte）、`first`（初回）、`combo`（all_of のバッジを全部持つ）、
+  `custom`（key で決まる特別判定）
+- `tier`: bronze / silver / gold / platinum / secret（xp_bonus を省略すると tier で決まる: 10 / 30 / 100 / 300 / 50）
+- `secret: true` は獲得するまで名前と条件を「???」で隠す
+- レベルは領域ごとに `Lv = floor(sqrt(累計XP / 100))`。称号は獲得バッジ数で決まる（config.yml の titles）
+
+```yaml
+# ---- A. 継続 ----
+- { id: first-step, name: はじめの一歩, icon: 🌱, tier: bronze, cat: 継続, desc: 初めて記録する, condition: { type: count, gte: 1 } }
+- { id: streak-003, name: 三日坊主、克服, icon: 🔥, tier: bronze, cat: 継続, desc: 3 日続ける, condition: { type: streak, gte: 3 } }
+- { id: streak-007, name: 一週間戦士, icon: 🔥, tier: bronze, cat: 継続, desc: 7 日続ける, condition: { type: streak, gte: 7 } }
+- { id: streak-014, name: 半月の意地, icon: 🔥, tier: silver, cat: 継続, desc: 14 日続ける, condition: { type: streak, gte: 14 } }
+- { id: streak-030, name: 一ヶ月の守護者, icon: 🔥, tier: gold, cat: 継続, desc: 30 日続ける, condition: { type: streak, gte: 30 } }
+- { id: streak-060, name: 還らざる60日, icon: 🔥, tier: gold, cat: 継続, desc: 60 日続ける, condition: { type: streak, gte: 60 } }
+- { id: streak-100, name: 百日行, icon: 💯, tier: platinum, cat: 継続, desc: 100 日続ける, condition: { type: streak, gte: 100 } }
+- { id: streak-180, name: 半年の人, icon: 🌗, tier: platinum, cat: 継続, desc: 180 日続ける, condition: { type: streak, gte: 180 } }
+- { id: streak-365, name: 一年、立っていた, icon: 👑, tier: platinum, cat: 継続, desc: 365 日続ける, condition: { type: streak, gte: 365 } }
+- { id: pass-first, name: 潔い休息, icon: 🕊, tier: bronze, cat: 継続, desc: 初めてパスを使う, condition: { type: count, status: passed, gte: 1 } }
+- { id: phoenix, name: 不死鳥, icon: ♻️, tier: silver, cat: 継続, desc: 途切れた翌日に再開する（3 回）, condition: { type: custom, key: resume, gte: 3 } }
+- { id: core-month, name: 皆勤の月, icon: 🗓, tier: gold, cat: 継続, desc: core のタスクを 30 日続けて落とさない, condition: { type: custom, key: core_streak, gte: 30 } }
+- { id: everyday-4w, name: 皆勤の記録者, icon: 📊, tier: silver, cat: 継続, desc: 4 週続けて毎日記録する, condition: { type: custom, key: everyday_weeks, gte: 4 } }
+
+# ---- B. 洗い物 ----
+- { id: dishes-first, name: 初洗い, icon: 🧽, tier: bronze, cat: 洗い物, desc: 洗い物を初めて記録, condition: { type: first, task: dishes } }
+- { id: dishes-010, name: シンクの番人, icon: 🧽, tier: bronze, cat: 洗い物, desc: 洗い物 10 回, condition: { type: count, task: dishes, gte: 10 } }
+- { id: dishes-025, name: 泡の住人, icon: 🧽, tier: silver, cat: 洗い物, desc: 洗い物 25 回, condition: { type: count, task: dishes, gte: 25 } }
+- { id: dishes-050, name: 皿の守護者, icon: 🍽, tier: silver, cat: 洗い物, desc: 洗い物 50 回, condition: { type: count, task: dishes, gte: 50 } }
+- { id: dishes-100, name: 食器戸棚の主, icon: 🍽, tier: gold, cat: 洗い物, desc: 洗い物 100 回, condition: { type: count, task: dishes, gte: 100 } }
+- { id: dishes-250, name: 二百五十皿, icon: 🏆, tier: gold, cat: 洗い物, desc: 洗い物 250 回, condition: { type: count, task: dishes, gte: 250 } }
+- { id: dishes-500, name: シンク帝国, icon: 👑, tier: platinum, cat: 洗い物, desc: 洗い物 500 回, condition: { type: count, task: dishes, gte: 500 } }
+- { id: drain-master, name: 排水口の支配者, icon: 🌀, tier: silver, cat: 洗い物, desc: 排水口の掃除 10 回, condition: { type: count, tasks: [bath-drain-parts, drains-other, washbasin-drain-hair, kitchen-drain-pipe], gte: 10 } }
+- { id: lightning, name: 電光石火, icon: ⚡️, tier: bronze, cat: 洗い物, desc: 見込みの半分以下の時間で洗い物を終える, condition: { type: custom, key: fast, task: dishes, gte: 1 } }
+- { id: dish-mountain, name: 皿の山を前にして, icon: 🏔, tier: bronze, cat: 洗い物, desc: 30 分以上かかる洗い物をやり切る, condition: { type: custom, key: long, task: dishes, gte: 1 } }
+- { id: mirror-sink, name: 鏡のシンク, icon: ✨, tier: silver, cat: 洗い物, desc: シンクの水垢磨き 20 回, condition: { type: count, task: sink-polish, gte: 20 } }
+- { id: both-ends, name: 朝も夜も, icon: 🌗, tier: silver, cat: 洗い物, desc: 洗い物を朝と夜の両方で記録した日が 10 日, condition: { type: custom, key: both_slots, task: dishes, gte: 10 } }
+
+# ---- C. 料理 ----
+- { id: cook-first, name: 初仕込み, icon: 🍳, tier: bronze, cat: 料理, desc: 翌日分の仕込みを初めて記録, condition: { type: first, task: cooking-prep } }
+- { id: prep-010, name: 仕込み見習い, icon: 🍳, tier: bronze, cat: 料理, desc: 仕込み 10 回, condition: { type: count, task: cooking-prep, gte: 10 } }
+- { id: prep-050, name: 仕込み職人, icon: 🍳, tier: silver, cat: 料理, desc: 仕込み 50 回, condition: { type: count, task: cooking-prep, gte: 50 } }
+- { id: cook-100, name: 台所の主, icon: 🍳, tier: gold, cat: 料理, desc: 料理の記録 100 回, condition: { type: count, area: cooking, gte: 100 } }
+- { id: cook-250, name: 家庭料理人, icon: 👨‍🍳, tier: platinum, cat: 料理, desc: 料理の記録 250 回, condition: { type: count, area: cooking, gte: 250 } }
+- { id: dinner-030, name: 夕食の人, icon: 🍲, tier: silver, cat: 料理, desc: 夜ご飯 30 回, condition: { type: count, task: dinner-cook, gte: 30 } }
+- { id: breakfast-030, name: 朝食の人, icon: 🍞, tier: silver, cat: 料理, desc: 朝ごはん 30 回, condition: { type: count, task: breakfast-cook, gte: 30 } }
+- { id: menu-020, name: 献立設計者, icon: 📅, tier: bronze, cat: 料理, desc: 翌日の献立を 20 回決める, condition: { type: count, task: menu-decide, gte: 20 } }
+- { id: quick-prep, name: 段取りの人, icon: ⏱, tier: silver, cat: 料理, desc: 仕込みを見込みの半分の時間で終える（5 回）, condition: { type: custom, key: fast, task: cooking-prep, gte: 5 } }
+- { id: cook-lv4, name: 味の設計者, icon: 🧂, tier: gold, cat: 料理, desc: 料理 Lv4, condition: { type: level, area: cooking, gte: 4 } }
+
+# ---- D. 掃除 ----
+- { id: clean-first, name: 初掃除, icon: 🧹, tier: bronze, cat: 掃除, desc: 掃除を初めて記録, condition: { type: first, area: cleaning } }
+- { id: floor-025, name: 床の番人, icon: 🧹, tier: silver, cat: 掃除, desc: 床掃除 25 回, condition: { type: count, tasks: [floor-vacuum, floor-wipe], gte: 25 } }
+- { id: bath-025, name: 浴室の防人, icon: 🚿, tier: silver, cat: 掃除, desc: 浴室の掃除 25 回, condition: { type: count, tasks: [bath-clean, bathroom-deep], gte: 25 } }
+- { id: toilet-025, name: 白磁の守り手, icon: 🚽, tier: silver, cat: 掃除, desc: トイレ掃除 25 回, condition: { type: count, tasks: [toilet, toilet-deep], gte: 25 } }
+- { id: windows-first, name: 光を通す者, icon: 🪟, tier: bronze, cat: 掃除, desc: 窓・サッシを初めて攻略, condition: { type: first, task: windows } }
+- { id: hood-first, name: 換気扇、堕つ, icon: 🌀, tier: silver, cat: 掃除, desc: 換気扇本体を初めて攻略, condition: { type: first, task: range-hood } }
+- { id: grates-first, name: 五徳の試練, icon: 🔥, tier: bronze, cat: 掃除, desc: 五徳の焦げ落としを完遂, condition: { type: first, task: stove-grates } }
+- { id: grill-first, name: 魚焼きグリルの闇, icon: 🐟, tier: bronze, cat: 掃除, desc: グリルを完全清掃, condition: { type: first, task: grill } }
+- { id: kitchen-trinity, name: キッチン三種の神器, icon: 🏅, tier: gold, cat: 掃除, desc: 換気扇・五徳・グリルを全制覇, condition: { type: combo, all_of: [hood-first, grates-first, grill-first] } }
+- { id: fridge-first, name: 冷蔵庫の整理者, icon: ❄️, tier: bronze, cat: 掃除, desc: 冷蔵庫の全棚清掃を完遂, condition: { type: first, task: fridge-deep } }
+- { id: aircon-first, name: エアコンの深呼吸, icon: 🌬, tier: bronze, cat: 掃除, desc: エアコンの吹出口と本体を掃除, condition: { type: first, task: aircon-body } }
+- { id: washer-first, name: 洗濯槽リセット, icon: 🧺, tier: bronze, cat: 掃除, desc: 洗濯槽クリーナーを初めて回す, condition: { type: first, task: washer-tub } }
+- { id: screens-first, name: 網戸の向こう, icon: 🕸, tier: bronze, cat: 掃除, desc: 網戸を初めて掃除, condition: { type: first, task: screens } }
+- { id: balcony-first, name: ベランダ開拓, icon: 🪴, tier: bronze, cat: 掃除, desc: ベランダを初めて掃除, condition: { type: first, task: balcony } }
+- { id: garden-first, name: 庭の番人, icon: 🌿, tier: bronze, cat: 掃除, desc: 庭の草取りを初めて記録, condition: { type: first, task: garden-weeding } }
+- { id: clean-lv3, name: 汚れの化学者, icon: 🧪, tier: gold, cat: 掃除, desc: 掃除 Lv3, condition: { type: level, area: cleaning, gte: 3 } }
+- { id: clean-lv5, name: 予防設計者, icon: 🛡, tier: platinum, cat: 掃除, desc: 掃除 Lv5, condition: { type: level, area: cleaning, gte: 5 } }
+- { id: all-places, name: 家中一巡, icon: 🌟, tier: gold, cat: 掃除, desc: 掃除メニューの全エリアを 30 日以内に 1 周, condition: { type: custom, key: all_places, days: 30 } }
+
+# ---- E. 洗濯 ----
+- { id: laundry-first, name: 初洗濯, icon: 👕, tier: bronze, cat: 洗濯, desc: 洗濯を初めて記録, condition: { type: first, area: laundry } }
+- { id: wash-025, name: 回す人, icon: 🫧, tier: silver, cat: 洗濯, desc: 洗濯機を 25 回回す, condition: { type: count, task: laundry-wash, gte: 25 } }
+- { id: hang-025, name: 干す人, icon: 🌤, tier: silver, cat: 洗濯, desc: 洗濯物を 25 回干す, condition: { type: count, task: laundry-hang, gte: 25 } }
+- { id: fold-025, name: たたむ人, icon: 🧺, tier: silver, cat: 洗濯, desc: 取り込んでたたむ 25 回, condition: { type: count, task: laundry-fold-store, gte: 25 } }
+- { id: fold-100, name: たたみの達人, icon: 🧺, tier: gold, cat: 洗濯, desc: 取り込んでたたむ 100 回, condition: { type: count, task: laundry-fold-store, gte: 100 } }
+- { id: daycare-010, name: 園の守り, icon: 🎒, tier: silver, cat: 洗濯, desc: 保育園のシーツ・タオルを 10 回, condition: { type: count, task: daycare-laundry, gte: 10 } }
+- { id: laundry-lv3, name: 洗濯の人, icon: 👔, tier: gold, cat: 洗濯, desc: 洗濯 Lv3, condition: { type: level, area: laundry, gte: 3 } }
+
+# ---- F. 名もなき家事 ----
+- { id: nameless-first, name: 見つけた, icon: 👁, tier: bronze, cat: 名もなき家事, desc: 名もなき家事を初めて記録, condition: { type: first, task: nameless-adhoc } }
+- { id: nameless-010, name: 目が慣れてきた, icon: 👁, tier: bronze, cat: 名もなき家事, desc: 名もなき家事 10 件, condition: { type: count, task: nameless-adhoc, gte: 10 } }
+- { id: nameless-025, name: 発見者, icon: 🔍, tier: silver, cat: 名もなき家事, desc: 名もなき家事 25 件, condition: { type: count, task: nameless-adhoc, gte: 25 } }
+- { id: nameless-050, name: 家事の地図, icon: 🗺, tier: gold, cat: 名もなき家事, desc: 名もなき家事 50 件, condition: { type: count, task: nameless-adhoc, gte: 50 } }
+- { id: garbage-050, name: ゴミの門番, icon: 🗑, tier: silver, cat: 名もなき家事, desc: ゴミまとめ 50 回, condition: { type: count, task: garbage, gte: 50 } }
+- { id: mail-020, name: 郵便処理係, icon: 📮, tier: bronze, cat: 名もなき家事, desc: 郵便・書類・発送の処理 20 回, condition: { type: count, task: mail-papers, gte: 20 } }
+- { id: refill-020, name: 詰め替え職人, icon: 🧴, tier: bronze, cat: 名もなき家事, desc: 洗剤の補充 20 回, condition: { type: count, task: detergent-refill, gte: 20 } }
+- { id: stock-012, name: 在庫の守り人, icon: 🧻, tier: silver, cat: 名もなき家事, desc: 消耗品の在庫チェック 12 回, condition: { type: count, task: supplies-check, gte: 12 } }
+- { id: tidy-030, name: 片付けの人, icon: 🧹, tier: silver, cat: 名もなき家事, desc: 片付け 30 回, condition: { type: count, task: tidy-up, gte: 30 } }
+
+# ---- G. 目標・記録 ----
+- { id: target-first, name: 初達成, icon: 🎯, tier: bronze, cat: 目標・記録, desc: 週の目標を初めて達成, condition: { type: target_hit, gte: 1 } }
+- { id: target-3, name: 三連, icon: 🎯, tier: silver, cat: 目標・記録, desc: 3 週連続で達成, condition: { type: target_hit, consecutive: 3 } }
+- { id: target-10, name: 十連, icon: 🎯, tier: gold, cat: 目標・記録, desc: 10 週連続で達成, condition: { type: target_hit, consecutive: 10 } }
+- { id: target-13, name: 四半期, icon: 🎯, tier: platinum, cat: 目標・記録, desc: 13 週連続で達成, condition: { type: target_hit, consecutive: 13 } }
+- { id: overachieve, name: 超過達成, icon: 🚀, tier: silver, cat: 目標・記録, desc: 週の達成率 120% 超え, condition: { type: target_hit, ratio_gte: 1.2 } }
+- { id: best-week, name: 自己ベスト, icon: 🏔, tier: bronze, cat: 目標・記録, desc: 週の換算時間の記録を更新, condition: { type: custom, key: best_week, gte: 1 } }
+- { id: hours-010, name: 10時間の人, icon: ⏰, tier: bronze, cat: 目標・記録, desc: 累計 600 換算分, condition: { type: weighted_total, gte: 600 } }
+- { id: hours-050, name: 50時間の人, icon: ⏰, tier: silver, cat: 目標・記録, desc: 累計 3,000 換算分, condition: { type: weighted_total, gte: 3000 } }
+- { id: hours-100, name: 100時間の人, icon: ⏰, tier: gold, cat: 目標・記録, desc: 累計 6,000 換算分, condition: { type: weighted_total, gte: 6000 } }
+- { id: hours-500, name: 500時間の人, icon: ⏰, tier: platinum, cat: 目標・記録, desc: 累計 30,000 換算分, condition: { type: weighted_total, gte: 30000 } }
+- { id: ramp-top, name: ランプ登頂, icon: 🧗, tier: gold, cat: 目標・記録, desc: 目標比率 100% の段階に到達, condition: { type: custom, key: ramp_top, gte: 1 } }
+
+# ---- H. 学び ----
+- { id: learn-first, name: 最初の気づき, icon: 💡, tier: bronze, cat: 学び, desc: 「気づき」を初めて記録, condition: { type: count, learned: true, gte: 1 } }
+- { id: learn-025, name: 気づきの蓄積, icon: 💡, tier: silver, cat: 学び, desc: 気づき 25 件, condition: { type: count, learned: true, gte: 25 } }
+- { id: practice-050, name: 反復の人, icon: 🔁, tier: silver, cat: 学び, desc: コツを 50 回実践, condition: { type: count, practiced: true, gte: 50 } }
+- { id: tip-mastered, name: 体に入った, icon: 🧠, tier: gold, cat: 学び, desc: 1 つのコツが最終段階（90 日）に到達, condition: { type: custom, key: tip_stage, gte: 1 } }
+- { id: tip-ten, name: 十の習い, icon: 🧠, tier: platinum, cat: 学び, desc: 10 個のコツが最終段階に到達, condition: { type: custom, key: tip_stage, gte: 10 } }
+- { id: master-one, name: 一領域を修める, icon: 🎓, tier: gold, cat: 学び, desc: どれかの領域で Lv5, condition: { type: level, any: true, gte: 5 } }
+- { id: master-two, name: 二領域を修める, icon: 🎓, tier: platinum, cat: 学び, desc: 2 つの領域で Lv5, condition: { type: level, areas_gte: 2, gte: 5 } }
+- { id: all-lv3, name: 全領域踏破, icon: 🏛, tier: gold, cat: 学び, desc: 全領域で Lv3 以上, condition: { type: level, all: true, gte: 3 } }
+
+# ---- I. 引き算 ----
+- { id: partial-010, name: 70点主義, icon: 🧘, tier: silver, cat: 引き算, desc: 「70点で完了」を 10 回, condition: { type: count, status: partial, gte: 10 } }
+
+# ---- J. シークレット（獲得するまで ??? ）----
+- { id: dawn, name: 夜明け前の人, icon: 🌅, tier: secret, cat: シークレット, desc: 3:00〜5:29 の記録が 10 回, secret: true, condition: { type: custom, key: early, gte: 10 } }
+- { id: trio, name: 三種そろい踏み, icon: 🎼, tier: secret, cat: シークレット, desc: 洗い物・料理・洗濯を同じ日に記録した日が 7 日, secret: true, condition: { type: custom, key: trio, areas: [dishes, cooking, laundry], gte: 7 } }
+- { id: ten-a-day, name: 一日十件, icon: 🔟, tier: secret, cat: シークレット, desc: 1 日に 10 件記録する, secret: true, condition: { type: custom, key: day_entries, n: 10, gte: 1 } }
+- { id: quiet-morning, name: 静かな朝, icon: 🌄, tier: secret, cat: シークレット, desc: 朝に 3 件以上記録した日が 5 日, secret: true, condition: { type: custom, key: morning_entries, n: 3, gte: 5 } }
+- { id: weekend-lord, name: 週末の主, icon: 🛋, tier: secret, cat: シークレット, desc: 土日に 5 件以上記録した日が 4 日, secret: true, condition: { type: custom, key: weekend_days, n: 5, gte: 4 } }
+```

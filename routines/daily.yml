@@ -15,35 +15,21 @@
 #   W = 1.0 + 各加点 / 換算時間 = 実時間 × W
 #   core: true は省エネモードでも残す「絶対防衛ライン」
 #   同じタスクを 1 日に何回でも小分けに記録できる（完了 → 追加）。est_minutes は 1 回分の見込み。
+#
+# 2026-09-20 記録 6 日分を見て見直し: 風呂掃除とゴミは夜に記録されていたので夜へ。
+# 「名もなき家事」に繰り返し入っていた朝ごはん・夜ご飯・片付けを正式なタスクに。
 
 # ---- 朝 ----
-- id: garbage
-  title: ゴミまとめ・ゴミ出し
-  area: nameless
-  schedule: { type: cron, expr: "0 7 * * *" }   # 収集は朝。収集区分は自治体カレンダーに従う
+- id: breakfast-cook
+  title: 朝ごはんを作る
+  area: cooking
+  schedule: { type: cron, expr: "0 7 * * *" }
   slots: [morning]
-  est_minutes: 5
-  load: { physical: 1, mental: 2, time_bound: 2 }   # W=1.35 → 換算 7分
-  core: true
-  checklist:
-    - 今日の収集区分を確認する
-    - 各部屋のゴミを集めて袋をまとめる
-    - 新しい袋をセットする
-    - 収集日なら集積所へ出す
-  pass_allowed: true
-
-- id: bath-clean
-  title: 風呂掃除
-  area: cleaning
-  schedule: { type: cron, expr: "0 7 * * *" }   # 入浴後派なら slots を [night] に
-  slots: [morning]
-  est_minutes: 10
-  load: { physical: 2, mental: 1, time_bound: 0 }   # W=1.10 → 換算 11分
+  est_minutes: 15
+  load: { physical: 1, mental: 2, time_bound: 1 }   # W=1.25 → 換算 19分
   core: false
   checklist:
-    - 浴槽を洗う
-    - 排水口の髪の毛を取る
-    - 壁・床を流して水気を切り、換気扇を回す
+    - 主食 + 1 品で十分。子どもの分は取り分け
   pass_allowed: true
 
 # ---- 朝と夜の両方 ----
@@ -77,13 +63,26 @@
   pass_allowed: true
 
 # ---- 夜 ----
+- id: dinner-cook
+  title: 夜ご飯を作る
+  area: cooking
+  schedule: { type: cron, expr: "0 18 * * *" }
+  slots: [night]
+  est_minutes: 30
+  load: { physical: 2, mental: 2, time_bound: 1 }   # W=1.35 → 換算 41分
+  core: true
+  checklist:
+    - 仕込み済みのものがあれば温めるだけ
+    - 作りながら使った道具を洗うと、洗い物が半分になる
+  pass_allowed: true
+
 - id: cooking-prep
   title: 翌日分の仕込み
   area: cooking
-  schedule: { type: cron, expr: "30 19 * * *" }  # 帰宅後
+  schedule: { type: cron, expr: "30 19 * * *" }
   slots: [night]
-  est_minutes: 40
-  load: { physical: 2, mental: 2, time_bound: 1 }   # W=1.35 → 換算 54分
+  est_minutes: 45                                    # 実績の平均 45 分
+  load: { physical: 2, mental: 2, time_bound: 1 }   # W=1.35 → 換算 61分
   core: false
   checklist:
     - 主菜を仕込む
@@ -131,6 +130,34 @@
     - 子ども服は引き出しに放り込む。靴下はペアにしない（同じ種類に統一）
   pass_allowed: true
 
+- id: bath-clean
+  title: 風呂掃除
+  area: cleaning
+  schedule: { type: cron, expr: "0 22 * * *" }   # 記録は夜に集中していたので夜へ。朝派なら [morning]
+  slots: [night]
+  est_minutes: 10
+  load: { physical: 2, mental: 1, time_bound: 0 }   # W=1.10 → 換算 11分
+  core: false
+  checklist:
+    - 浴槽を洗う
+    - 排水口の髪の毛を取る
+    - 壁・床を流して水気を切り、換気扇を回す
+  pass_allowed: true
+
+- id: garbage
+  title: ゴミまとめ（翌朝出す分）
+  area: nameless
+  schedule: { type: cron, expr: "0 22 * * *" }   # まとめるのは夜。出すのは朝のついで
+  slots: [night]
+  est_minutes: 5
+  load: { physical: 1, mental: 2, time_bound: 2 }   # W=1.35 → 換算 7分
+  core: true
+  checklist:
+    - 明日の収集区分を確認する
+    - 各部屋のゴミを集めて袋をまとめ、玄関へ
+    - 新しい袋をセットする
+  pass_allowed: true
+
 # ---- 後から記録（時間帯は記録したときの時刻で自動。詳細で変えられる）----
 - id: nameless-adhoc
   title: 名もなき家事
@@ -141,6 +168,18 @@
   load: { physical: 1, mental: 2, time_bound: 0 }   # W=1.15
   core: false
   checklist: []
+  pass_allowed: false
+
+- id: tidy-up
+  title: 片付け（床の物を戻す・散らかりリセット）
+  area: nameless
+  schedule: { type: manual }
+  est_minutes: 10
+  quick_minutes: [5, 10, 15]
+  load: { physical: 1, mental: 1, time_bound: 0 }   # W=1.00
+  core: false
+  checklist:
+    - 床の物をカゴに入れるだけでも 1 回に数える
   pass_allowed: false
 
 - id: detergent-refill

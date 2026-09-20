@@ -25,3 +25,11 @@ pass:
 
 privacy:
   log_time: true                # false にすると記録に時刻（ts）を残さず日付だけにする
+
+titles:                         # 称号。獲得バッジ数で決まる（docs/badges.md）
+  - { badges: 5,  name: 見習い }
+  - { badges: 15, name: 家事人 }
+  - { badges: 30, name: 熟練 }
+  - { badges: 50, name: 師範 }
+  - { badges: 70, name: 家事の匠 }
+  - { badges: 90, name: 伝説 }

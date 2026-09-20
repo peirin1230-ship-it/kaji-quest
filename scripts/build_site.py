@@ -110,6 +110,44 @@ def load_basics():
     return chapters
 
 
+BADGE_TYPES = {"count", "streak", "weighted_total", "target_hit", "level", "first", "combo", "custom"}
+CUSTOM_KEYS = {"fast", "long", "both_slots", "trio", "day_entries", "morning_entries", "weekend_days", "early",
+               "core_streak", "resume", "all_places", "everyday_weeks", "tip_stage", "best_week", "ramp_top"}
+
+
+def load_badges(routines):
+    """docs/badges.md の ```yaml ブロックをバッジ定義として読む（docs/SPEC.md §7.2）。"""
+    path = os.path.join(ROOT, "docs", "badges.md")
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        m = re.search(r"```yaml\n(.*?)\n```", f.read(), re.S)
+    if not m:
+        fail("docs/badges.md に ```yaml ブロックが無い")
+    badges = yaml.safe_load(m.group(1)) or []
+    ids, rids = set(), {r["id"] for r in routines}
+    for b in badges:
+        for key in ("id", "name", "icon", "cat", "condition"):
+            if key not in b:
+                fail(f"badges: {b.get('id', '?')} に {key} がない")
+        if b["id"] in ids:
+            fail(f"badges: id が重複 {b['id']}")
+        ids.add(b["id"])
+        c = b["condition"]
+        if c.get("type") not in BADGE_TYPES:
+            fail(f"badges: {b['id']} の type は {sorted(BADGE_TYPES)} のどれか")
+        if c.get("type") == "custom" and c.get("key") not in CUSTOM_KEYS:
+            fail(f"badges: {b['id']} の custom key {c.get('key')} は未対応")
+        for tid in ([c["task"]] if c.get("task") else []) + list(c.get("tasks") or []):
+            if tid not in rids:
+                fail(f"badges: {b['id']} が無いタスク {tid} を参照")
+    for b in badges:
+        for other in b["condition"].get("all_of") or []:
+            if other not in ids:
+                fail(f"badges: {b['id']} の all_of に無い id {other}")
+    return badges
+
+
 def link_tips(routines, tips):
     """コツの tasks: をルーチンの tips: に合流させ、参照先が存在するか確かめる。"""
     by_id = {r["id"]: r for r in routines}
@@ -133,6 +171,7 @@ def main():
     routines = load_routines()
     tips = load_knowledge()
     basics = load_basics()
+    badges = load_badges(routines)
     link_tips(routines, tips)
     with open(os.path.join(ROOT, "config.yml"), encoding="utf-8") as f:
         config = yaml.safe_load(f) or {}
@@ -145,11 +184,11 @@ def main():
     shutil.copytree(os.path.join(ROOT, "site"), out)
     open(os.path.join(out, ".nojekyll"), "w").close()   # Pages 側の Jekyll 処理を止め、ファイルをそのまま配信する
     os.makedirs(os.path.join(out, "data"), exist_ok=True)
-    for name, data in (("routines.json", routines), ("config.json", config), ("knowledge.json", tips), ("basics.json", basics)):
+    for name, data in (("routines.json", routines), ("config.json", config), ("knowledge.json", tips), ("basics.json", basics), ("badges.json", badges)):
         with open(os.path.join(out, "data", name), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=1, default=str)
             f.write("\n")
-    print(f"built {out}: {len(routines)} routines, {len(tips)} tips, {len(basics)} chapters")
+    print(f"built {out}: {len(routines)} routines, {len(tips)} tips, {len(basics)} chapters, {len(badges)} badges")
 
 
 if __name__ == "__main__":

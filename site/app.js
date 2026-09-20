@@ -26,7 +26,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '' };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -197,7 +197,7 @@ async function computeStreak(today) {
 // ---- 描画 ----
 function render() {
   const today = nowParts().date; const date = viewDate();
-  const entries = allEntries().filter(e => e.date <= date);   // 表示日時点の状態を出す
+  const all = allEntries(); const entries = all.filter(e => e.date <= date);   // 表示日時点の状態を出す
   const todays = entries.filter(e => e.date === date);
   renderHeader(today, date);
   $('#progress').innerHTML = progressHTML(today, date, entries);
@@ -207,6 +207,7 @@ function render() {
   $('#basics').innerHTML = basicsHTML();
   $('#quick').innerHTML = quickHTML(todays);
   $('#week').innerHTML = weekHTML(today, date, entries);
+  $('#achievements').innerHTML = achievementsHTML(today, date, entries, all);
   $('#today-log').innerHTML = logHTML(date, todays);
   renderSearch(date, todays, entries);
   document.body.classList.toggle('busy', state.busy);
@@ -415,6 +416,169 @@ function renderSearch(date, todays, entries) {
   box.innerHTML = html || '<p class="empty">見つからない</p>';
 }
 
+// ---- バッジ・レベル・称号（docs/badges.md → data/badges.json）。記録から毎回計算する。取ったものは記録が残るかぎり残る ----
+const AREAS = ['dishes', 'cooking', 'cleaning', 'laundry', 'nameless'];
+const TIER_XP = { bronze: 10, silver: 30, gold: 100, platinum: 300, secret: 50 };
+const levelOf = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 100));         // §7: Lv = floor(sqrt(累計XP / 100))
+const nextLevelXp = lv => (lv + 1) * (lv + 1) * 100;
+function newStats() {
+  return { n: 0, byTask: {}, byArea: {}, weighted: 0, weightedByArea: {}, xpByArea: {}, days: new Set(), passDays: new Set(), coreDays: new Set(),
+    streakCur: 0, streakBest: 0, coreStreakCur: 0, coreStreakBest: 0, passes: 0, partials: 0, learned: 0, practiced: 0, tipStage: {},
+    fast: {}, long: {}, slotDays: {}, dayCount: {}, morningCount: {}, early: 0, resume: 0, placeLast: {}, weekTotal: {}, areaDays: {}, lastDay: '' };
+}
+function statAdd(st, e) {
+  if (e.tip_id) { const t = st.tipStage[e.tip_id] || (st.tipStage[e.tip_id] = { stage: 0 }); if (e.tip_practiced) { t.stage = Math.min(t.stage + 1, TIP_INTERVALS.length - 1); st.practiced++; } else t.stage = Math.max(0, t.stage - 1); }
+  if (e.status === 'passed') { st.passes++; st.passDays.add(e.date); return; }
+  if (!EARNED.has(e.status)) return;
+  const r = routineById(e.task_id); const area = e.area || (r && r.area) || 'nameless'; const day = e.date;
+  st.n++; st.byTask[e.task_id] = (st.byTask[e.task_id] || 0) + 1; st.byArea[area] = (st.byArea[area] || 0) + 1;
+  const wm = +e.weighted_minutes || 0; st.weighted += wm; st.weightedByArea[area] = (st.weightedByArea[area] || 0) + wm;
+  st.xpByArea[area] = (st.xpByArea[area] || 0) + (Number.isFinite(+e.xp) ? +e.xp : Math.round(wm));
+  const wn = weekNoOf(day); st.weekTotal[wn] = (st.weekTotal[wn] || 0) + wm;
+  if (e.status === 'partial') st.partials++;
+  if (e.learned) st.learned++;
+  const act = +e.actual_minutes || 0;
+  if (r && r.est_minutes && act > 0 && act <= r.est_minutes / 2) st.fast[e.task_id] = (st.fast[e.task_id] || 0) + 1;
+  if (act >= 30) st.long[e.task_id] = (st.long[e.task_id] || 0) + 1;
+  const sl = entrySlot(e, r);
+  const sd = st.slotDays[e.task_id] || (st.slotDays[e.task_id] = {}); (sd[day] || (sd[day] = new Set())).add(sl);
+  st.dayCount[day] = (st.dayCount[day] || 0) + 1;
+  if (sl === 'morning') st.morningCount[day] = (st.morningCount[day] || 0) + 1;
+  const m = /T(\d\d):(\d\d)/.exec(String(e.ts || '')); if (m) { const hm = +m[1] * 60 + +m[2]; if (hm >= 180 && hm < 330) st.early++; }
+  if (r && isMenu(r)) st.placeLast[r.place || 'その他'] = day;
+  (st.areaDays[day] || (st.areaDays[day] = new Set())).add(area);
+  if (r && r.core) st.coreDays.add(day);
+}
+function statEndDay(st, day) {
+  const counted = (st.dayCount[day] || 0) > 0 || st.passDays.has(day);
+  if (counted) {
+    const prev = addDays(day, -1);
+    if (st.lastDay && st.lastDay !== prev) st.resume++;                     // 途切れた翌日に再開
+    st.days.add(day);
+    st.streakCur = st.days.has(prev) ? st.streakCur + 1 : 1; st.streakBest = Math.max(st.streakBest, st.streakCur);
+    st.lastDay = day;
+  }
+  if (st.coreDays.has(day)) { st.coreStreakCur = st.coreDays.has(addDays(day, -1)) ? st.coreStreakCur + 1 : 1; st.coreStreakBest = Math.max(st.coreStreakBest, st.coreStreakCur); }
+}
+// 終わった週ごとの結果（目標は §6.3 のランプと自動ダウンシフトで決まる）
+function weekResults(st, day) {
+  const t = state.config.target || {}; const final = +t.final_weighted_minutes || 0; const after = +t.auto_downshift_after_miss || 0;
+  const cur = weekNoOf(day); const list = []; let penalty = 0, misses = 0;
+  for (let w = 1; w < cur; w++) {
+    if (addDays(weekStartOf(w), 6) >= day) break;
+    const total = st.weekTotal[w] || 0; const target = final * ratioFor(w, penalty); const hit = final > 0 && total >= target;
+    list.push({ w, total, target, hit, ratio: target ? total / target : 0 });
+    if (!hit) { misses++; if (after && misses >= after) { penalty++; misses = 0; } } else misses = 0;
+  }
+  return { list, penalty };
+}
+function measure(b, st, earned, day) {
+  const c = b.condition || {}; const gte = +c.gte || 1;
+  const countOf = () => {
+    if (c.task) return st.byTask[c.task] || 0;
+    if (Array.isArray(c.tasks)) return c.tasks.reduce((s, id) => s + (st.byTask[id] || 0), 0);
+    if (c.area) return st.byArea[c.area] || 0;
+    if (c.status === 'passed') return st.passes;
+    if (c.status === 'partial') return st.partials;
+    if (c.learned) return st.learned;
+    if (c.practiced) return st.practiced;
+    return st.n;
+  };
+  const lv = a => levelOf(st.xpByArea[a] || 0);
+  switch (c.type) {
+    case 'count': return { v: countOf(), t: gte };
+    case 'first': return { v: Math.min(1, countOf()), t: 1 };
+    case 'streak': return { v: st.streakBest, t: gte };
+    case 'weighted_total': return { v: Math.round(c.area ? (st.weightedByArea[c.area] || 0) : st.weighted), t: gte };
+    case 'target_hit': {
+      const wr = weekResults(st, day).list;
+      if (c.consecutive) { let best = 0, run = 0; wr.forEach(x => { run = x.hit ? run + 1 : 0; best = Math.max(best, run); }); return { v: best, t: +c.consecutive }; }
+      if (c.ratio_gte) return { v: wr.some(x => x.ratio >= +c.ratio_gte) ? 1 : 0, t: 1 };
+      return { v: wr.filter(x => x.hit).length, t: gte };
+    }
+    case 'level':
+      if (c.area) return { v: lv(c.area), t: gte };
+      if (c.all) return { v: Math.min(...AREAS.map(lv)), t: gte };
+      if (c.areas_gte) return { v: AREAS.filter(a => lv(a) >= gte).length, t: +c.areas_gte };
+      return { v: Math.max(...AREAS.map(lv)), t: gte };
+    case 'combo': { const ids = c.all_of || []; return { v: ids.filter(id => earned[id]).length, t: ids.length }; }
+    case 'custom': return customMeasure(c, st, day, gte);
+  }
+  return { v: 0, t: 1 };
+}
+function customMeasure(c, st, day, gte) {
+  const daysWhere = (obj, n) => Object.keys(obj).filter(d => obj[d] >= n).length;
+  switch (c.key) {
+    case 'fast': return { v: st.fast[c.task] || 0, t: gte };
+    case 'long': return { v: st.long[c.task] || 0, t: gte };
+    case 'both_slots': { const sd = st.slotDays[c.task] || {}; return { v: Object.keys(sd).filter(d => sd[d].size >= 2).length, t: gte }; }
+    case 'trio': { const areas = c.areas || []; return { v: Object.keys(st.areaDays).filter(d => areas.every(a => st.areaDays[d].has(a))).length, t: gte }; }
+    case 'day_entries': return { v: daysWhere(st.dayCount, +c.n || 10), t: gte };
+    case 'morning_entries': return { v: daysWhere(st.morningCount, +c.n || 3), t: gte };
+    case 'weekend_days': return { v: Object.keys(st.dayCount).filter(d => st.dayCount[d] >= (+c.n || 5) && (dowOf(d) === 0 || dowOf(d) === 6)).length, t: gte };
+    case 'early': return { v: st.early, t: gte };
+    case 'core_streak': return { v: st.coreStreakBest, t: gte };
+    case 'resume': return { v: st.resume, t: gte };
+    case 'all_places': { const places = [...new Set(state.routines.filter(isMenu).map(r => r.place || 'その他'))]; const within = +c.days || 30;
+      return { v: places.filter(p => st.placeLast[p] && daysBetween(st.placeLast[p], day) <= within).length, t: places.length }; }
+    case 'everyday_weeks': { let v = 0; const cur = weekNoOf(day); for (let w = 1; w < cur; w++) { const a = weekStartOf(w); if (addDays(a, 6) >= day) break; if ([...Array(7)].every((_, i) => st.days.has(addDays(a, i)))) v++; } return { v, t: gte }; }
+    case 'tip_stage': return { v: Object.values(st.tipStage).filter(t => t.stage >= TIP_INTERVALS.length - 1).length, t: gte };
+    case 'best_week': { const wr = weekResults(st, day).list; let best = -1, v = 0; wr.forEach((x, i) => { if (i > 0 && x.total > best) v++; best = Math.max(best, x.total); }); return { v, t: gte }; }
+    case 'ramp_top': return { v: ratioFor(weekNoOf(day), weekResults(st, day).penalty) >= 1 ? 1 : 0, t: 1 };
+  }
+  return { v: 0, t: 1 };
+}
+// 記録を日付順にたどり、各日の終わりに未獲得バッジを判定する（獲得日 = その日）
+function evaluateBadges(entries) {
+  const badges = state.badges; const earned = {}; const st = newStats();
+  if (!badges.length) return { earned, st };
+  const byDay = {}; entries.forEach(e => { (byDay[e.date] || (byDay[e.date] = [])).push(e); });
+  Object.keys(byDay).sort().forEach(day => {
+    byDay[day].forEach(e => statAdd(st, e)); statEndDay(st, day);
+    for (let pass = 0; pass < 2; pass++) badges.forEach(b => { if (!earned[b.id]) { const m = measure(b, st, earned, day); if (m.t > 0 && m.v >= m.t) earned[b.id] = day; } });
+  });
+  return { earned, st };
+}
+function titleFor(n) {
+  const ts = (state.config.titles || []).slice().sort((a, b) => a.badges - b.badges);
+  let name = '駆け出し'; ts.forEach(t => { if (n >= +t.badges) name = t.name; });
+  return { name, next: ts.find(t => n < +t.badges) };
+}
+function badgeTileHTML(b, when, m) {
+  if (!when && b.secret) return '<div class="badge-tile locked secret"><div class="ic">❔</div><div class="nm">???</div><div class="ds">シークレット</div></div>';
+  const pct = m.t ? Math.min(100, Math.round(m.v / m.t * 100)) : 0;
+  return `<div class="badge-tile ${when ? 'earned' : 'locked'} ${esc(b.tier || '')}"><div class="ic">${b.icon}</div><div class="nm">${esc(b.name)}</div><div class="ds">${esc(b.desc || '')}</div>${when ? `<div class="when">${esc(when.slice(0, 10).replace(/-/g, '/'))} 獲得</div>` : `<div class="bar mini"><div class="fill" style="width:${pct}%"></div></div><div class="when">${m.v}/${m.t}</div>`}</div>`;
+}
+function achievementsHTML(today, date, entries, all) {
+  if (!state.badges.length) return '';
+  const { earned, st } = evaluateBadges(entries); state.earned = earned;
+  // 獲得トーストの比較用は表示日に関係なく全記録で見る（過去日から今日へ戻っただけで「獲得」と出さない）
+  state.earnedAll = date === today ? earned : evaluateBadges(all).earned;
+  const n = Object.keys(earned).length; const total = state.badges.length;
+  const bonus = state.badges.filter(b => earned[b.id]).reduce((s, b) => s + (+b.xp_bonus || TIER_XP[b.tier] || 10), 0);
+  const xp = Object.values(st.xpByArea).reduce((s, v) => s + v, 0) + bonus;
+  const ttl = titleFor(n);
+  const levels = AREAS.map(a => { const x = st.xpByArea[a] || 0; const lv = levelOf(x); const lo = lv * lv * 100, hi = nextLevelXp(lv); const pct = Math.round((x - lo) / (hi - lo) * 100);
+    return `<div class="lvl"><span class="a">${AREA_JA[a]}</span><span class="l">Lv${lv}</span><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span class="sub">${x}/${hi}</span></div>`; }).join('');
+  const measured = state.badges.map(b => ({ b, m: measure(b, st, earned, date) }));
+  const near = measured.filter(x => !earned[x.b.id] && !x.b.secret && x.m.t > 0).map(x => ({ ...x, r: Math.min(1, x.m.v / x.m.t) })).sort((a, b) => b.r - a.r || a.m.t - b.m.t).slice(0, 3);
+  const recent = state.badges.filter(b => earned[b.id]).sort((a, b) => earned[b.id].localeCompare(earned[a.id])).slice(0, 3);
+  const nearHtml = near.map(x => `<div class="near"><span class="ic">${x.b.icon}</span><span class="nm">${esc(x.b.name)}</span><div class="bar"><div class="fill" style="width:${Math.round(x.r * 100)}%"></div></div><span class="sub">${x.m.v}/${x.m.t}</span></div>`).join('');
+  const recentHtml = recent.map(b => `<div class="near recent"><span class="ic">${b.icon}</span><span class="nm">${esc(b.name)} <span class="sub">${esc(b.desc || '')}</span></span><span class="sub when">${esc(earned[b.id].slice(5).replace('-', '/'))}</span></div>`).join('');
+  let room = '';
+  if (state.showTrophy) {
+    const cats = [...new Set(state.badges.map(b => b.cat || 'その他'))];
+    room = cats.map(cat => { const list = state.badges.filter(b => (b.cat || 'その他') === cat); const got = list.filter(b => earned[b.id]).length;
+      return `<h3 class="group">${esc(cat)} <span class="sub">${got}/${list.length}</span></h3><div class="badge-grid">${list.map(b => badgeTileHTML(b, earned[b.id], measured.find(x => x.b === b).m)).join('')}</div>`; }).join('');
+  }
+  return `<h2>🏆 実績${date !== today ? ` <span class="sub">${esc(date.slice(5).replace('-', '/'))} 時点</span>` : ''} <span class="sub">称号 <b>${esc(ttl.name)}</b>${ttl.next ? `（${esc(ttl.next.name)} まであと ${ttl.next.badges - n}）` : ''}</span></h2>
+    <div class="stats"><div><b>${n}</b><span>/${total} バッジ</span></div><div><b>${xp.toLocaleString()}</b><span>XP</span></div><div><b>${st.streakBest}</b><span>最長連続日</span></div><div><b>${Math.round(st.weighted / 60)}</b><span>時間（換算）</span></div></div>
+    <div class="levels">${levels}</div>
+    ${near.length ? `<h3 class="group">あと少し</h3>${nearHtml}` : ''}
+    ${recent.length ? `<h3 class="group">最近の獲得</h3>${recentHtml}` : ''}
+    <button class="ghost small wide" data-act="trophy-toggle">${state.showTrophy ? '閉じる' : `トロフィールームを開く（全 ${total} 種）`}</button>${room}`;
+}
+
 // ---- 操作 ----
 let toastTimer;
 function toast(msg, isErr) {
@@ -422,10 +586,17 @@ function toast(msg, isErr) {
   clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, isErr ? 5000 : 2500);
 }
 async function run(fn, okMsg) {
-  if (state.busy) return; state.busy = true; render();
-  try { await fn(); if (okMsg) toast(okMsg); }
+  if (state.busy) return;
+  const before = state.loaded ? new Set(Object.keys(state.earnedAll || {})) : null; let ok = false;   // 初回読み込みでは過去の獲得を通知しない
+  state.busy = true; render();
+  try { await fn(); ok = true; }
   catch (e) { console.error(e); toast(e.message || String(e), true); }
-  finally { state.busy = false; render(); }
+  finally {
+    state.busy = false; render();
+    const news = before ? state.badges.filter(b => (state.earnedAll || {})[b.id] && !before.has(b.id)) : [];
+    if (news.length) toast(`🏅 バッジ獲得: ${news.map(b => b.icon + ' ' + b.name).join('、')}${okMsg ? ' ・ ' + okMsg : ''}`);
+    else if (ok && okMsg) toast(okMsg);
+  }
 }
 function requireToken() { if (state.token) return true; toast('先に ⚙ でトークンを保存する', true); openSettings(); return false; }
 // 記録の共通部分。表示日が今日なら時刻を残す（config.privacy.log_time）。過去日への追記は backfill 扱いで時刻なし
@@ -501,6 +672,7 @@ $('#app').addEventListener('click', ev => {
     case 'tips-toggle': state.showTips = !state.showTips; render(); break;
     case 'chapter': openChapter(b.dataset.ch, false); break;
     case 'chapter-open': openChapter(b.dataset.ch, true); break;
+    case 'trophy-toggle': state.showTrophy = !state.showTrophy; render(); break;
   }
 });
 
@@ -578,15 +750,15 @@ async function reload() {
     const today = nowParts().date; const a = addDays(startMonday(), -7), b = addDays(today, -366);
     await ensureMonths(a > b ? a : b, today);
     if (state.viewDate) await ensureMonths(addDays(mondayOf(state.viewDate), -7), state.viewDate);
-    state.streak = await computeStreak(today);
+    state.streak = await computeStreak(today); state.loaded = true;
   });
 }
 async function init() {
   try { state.token = localStorage.getItem(TOKEN_KEY) || ''; } catch { state.token = ''; }
   try {
     const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); });
-    const [routines, config, tips, basics] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => []), get('data/basics.json').catch(() => [])]);
-    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : [];
+    const [routines, config, tips, basics, badges] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => []), get('data/basics.json').catch(() => []), get('data/badges.json').catch(() => [])]);
+    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
   } catch (e) { $('#tasks').innerHTML = `<p class="empty">設定の読み込みに失敗: ${esc(e.message)}</p>`; return; }
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;

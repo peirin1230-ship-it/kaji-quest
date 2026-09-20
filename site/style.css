@@ -155,3 +155,32 @@ h3.group.slot { font-size: 15px; color: var(--text); margin: 12px 0 2px; }
 .chapter-body th { background: var(--chip); font-weight: 600; white-space: nowrap; }
 .chapter-body .src { font-size: 13px; }
 .chapter-body .src a { color: var(--primary); }
+
+/* 実績（バッジ・レベル・称号） */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 4px 0 10px; }
+.stats > div { background: var(--chip); border-radius: 10px; padding: 8px 4px; text-align: center; }
+.stats b { display: block; font-size: 18px; line-height: 1.2; }
+.stats span { font-size: 11px; color: var(--muted); }
+.levels { display: grid; gap: 6px; margin-bottom: 4px; }
+.lvl { display: grid; grid-template-columns: 5.5em 3em 1fr 5.5em; align-items: center; gap: 8px; font-size: 13px; }
+.lvl .l { font-weight: 700; color: var(--primary); }
+.lvl .bar, .near .bar { margin: 0; height: 8px; }
+.lvl .sub { text-align: right; font-variant-numeric: tabular-nums; }
+.near { display: grid; grid-template-columns: 24px 1fr 90px 3.5em; align-items: center; gap: 8px; padding: 6px 0; font-size: 13.5px; border-top: 1px solid var(--line); }
+.near:first-of-type { border-top: 0; }
+.near.recent { grid-template-columns: 24px 1fr auto; }
+.near .ic { font-size: 18px; text-align: center; }
+.near .nm { font-weight: 600; }
+.near .sub.when { text-align: right; }
+.badge-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 6px 0 10px; }
+.badge-tile { background: var(--chip); border-radius: 12px; padding: 10px; text-align: center; }
+.badge-tile .ic { font-size: 28px; line-height: 1.2; }
+.badge-tile .nm { font-weight: 700; font-size: 13.5px; margin-top: 4px; }
+.badge-tile .ds { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.badge-tile .when { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.badge-tile.earned { background: var(--chip-on); }
+.badge-tile.earned.gold { box-shadow: inset 0 0 0 2px #e0b04a; }
+.badge-tile.earned.platinum { box-shadow: inset 0 0 0 2px #8fb4c9; }
+.badge-tile.earned.secret { box-shadow: inset 0 0 0 2px #b08bd6; }
+.badge-tile.locked .ic { filter: grayscale(1); opacity: .45; }
+.badge-tile .bar.mini { height: 6px; margin: 6px 0 0; }
