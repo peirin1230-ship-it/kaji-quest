@@ -5,7 +5,7 @@ area: cleaning
 topic: 予防・仕組み化
 level: 1
 tags: [仕組み, 在庫]
-tasks: [detergent-refill, supplies-check]
+tasks: [supplies-check, refill-dish-soap, refill-hand-soap, refill-laundry-detergent, refill-softener, refill-shampoo, refill-conditioner, refill-body-soap, refill-bath-cleaner, refill-toilet-cleaner]
 action: 詰め替えボトルを一周見て、1/4 以下のものを今補充する
 ---
 

@@ -2,6 +2,7 @@
 #
 # schedule: { type: weekly, day: SAT } のように曜日を指定すると、その曜日だけ「今日のタスク」に並ぶ。
 # 不要なら項目ごと消す。曜日は MON / TUE / WED / THU / FRI / SAT / SUN。
+# steps: は routines/daily.yml と同じ（手順ごとに 1 タップで記録）。
 
 - id: daycare-laundry
   title: 保育園のシーツ・タオル類を洗って戻す
@@ -15,5 +16,10 @@
     - 金曜の持ち帰り袋を全部出す
     - 名前と数を確認して洗う
     - 乾いたら月曜の袋にセット
+  steps:
+    - { id: daycare-unpack, title: 持ち帰り袋を全部出す, est_minutes: 2 }
+    - { id: daycare-wash, title: 名前と数を確認して洗う, est_minutes: 5 }
+    - { id: daycare-hang, title: 干す, est_minutes: 4 }
+    - { id: daycare-pack, title: 乾いたら月曜の袋にセット, est_minutes: 4 }
   tips: []
   pass_allowed: true

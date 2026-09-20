@@ -4,7 +4,7 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 ページは記録（logs/）からバッジを毎回計算する。一度取ったバッジは、記録が残るかぎり残る（剥奪しない）。
 足すのは簡単で、減らさないのが運用方針。無理をしないと取れない条件（深夜・連続◯時間など）は作らない。
 
-- `condition.type`: `count`（回数。task / tasks / area / status / learned / practiced で絞る）、`streak`（連続日数）、
+- `condition.type`: `count`（回数。task / tasks / area / kind / status / learned / practiced で絞る。task に書いた id の手順（steps）の記録も回数に入る）、`streak`（連続日数）、
   `weighted_total`（累計換算分。area で絞れる）、`target_hit`（週次目標の達成。gte / consecutive / ratio_gte）、
   `level`（領域レベル。area / any / all / areas_gte）、`first`（初回）、`combo`（all_of のバッジを全部持つ）、
   `custom`（key で決まる特別判定）
@@ -90,7 +90,12 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 - { id: nameless-050, name: 家事の地図, icon: 🗺, tier: gold, cat: 名もなき家事, desc: 名もなき家事 50 件, condition: { type: count, task: nameless-adhoc, gte: 50 } }
 - { id: garbage-050, name: ゴミの門番, icon: 🗑, tier: silver, cat: 名もなき家事, desc: ゴミまとめ 50 回, condition: { type: count, task: garbage, gte: 50 } }
 - { id: mail-020, name: 郵便処理係, icon: 📮, tier: bronze, cat: 名もなき家事, desc: 郵便・書類・発送の処理 20 回, condition: { type: count, task: mail-papers, gte: 20 } }
-- { id: refill-020, name: 詰め替え職人, icon: 🧴, tier: bronze, cat: 名もなき家事, desc: 洗剤の補充 20 回, condition: { type: count, task: detergent-refill, gte: 20 } }
+- { id: refill-first, name: 初補充, icon: 🧴, tier: bronze, cat: 名もなき家事, desc: 洗剤・消耗品の補充を初めて記録, condition: { type: first, kind: refill } }
+- { id: refill-020, name: 詰め替え職人, icon: 🧴, tier: bronze, cat: 名もなき家事, desc: 洗剤・消耗品の補充 20 回, condition: { type: count, kind: refill, gte: 20 } }
+- { id: refill-050, name: 在庫番, icon: 📦, tier: silver, cat: 名もなき家事, desc: 洗剤・消耗品の補充 50 回, condition: { type: count, kind: refill, gte: 50 } }
+- { id: steps-050, name: 小分け上手, icon: 🧩, tier: bronze, cat: 目標・記録, desc: 手順ごとの記録 50 回, condition: { type: custom, key: step_entries, gte: 50 } }
+- { id: steps-200, name: 積み重ねの人, icon: 🧱, tier: silver, cat: 目標・記録, desc: 手順ごとの記録 200 回, condition: { type: custom, key: step_entries, gte: 200 } }
+- { id: steps-full-010, name: 手順どおり, icon: ✅, tier: bronze, cat: 目標・記録, desc: 手順を全部たどってタスクを終える（10 回）, condition: { type: custom, key: steps_complete, gte: 10 } }
 - { id: stock-012, name: 在庫の守り人, icon: 🧻, tier: silver, cat: 名もなき家事, desc: 消耗品の在庫チェック 12 回, condition: { type: count, task: supplies-check, gte: 12 } }
 - { id: tidy-030, name: 片付けの人, icon: 🧹, tier: silver, cat: 名もなき家事, desc: 片付け 30 回, condition: { type: count, task: tidy-up, gte: 30 } }
 

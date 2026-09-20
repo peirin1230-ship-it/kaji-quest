@@ -184,3 +184,16 @@ h3.group.slot { font-size: 15px; color: var(--text); margin: 12px 0 2px; }
 .badge-tile.earned.secret { box-shadow: inset 0 0 0 2px #b08bd6; }
 .badge-tile.locked .ic { filter: grayscale(1); opacity: .45; }
 .badge-tile .bar.mini { height: 6px; margin: 6px 0 0; }
+
+/* 手順（steps）: タスク行の下に開く小分けの一覧 */
+.task { flex-wrap: wrap; }
+.task .steps { flex-basis: 100%; list-style: none; margin: 6px 0 0; padding: 0 0 0 4px; }
+.step { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px dashed var(--line); font-size: 14px; }
+.step .ck { width: 16px; color: var(--primary); font-weight: 700; text-align: center; flex-shrink: 0; }
+.step .nm { flex: 1; min-width: 0; }
+.step.is-done .nm { color: var(--muted); text-decoration: line-through; }
+.step .mt { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.step.is-done .mt { color: var(--primary); }
+.step .primary.tiny { min-height: 36px; padding: 0 12px; font-size: 13.5px; border-radius: 10px; }
+.steps-toggle { background: none; border: 0; color: var(--primary); font-size: 12.5px; font-weight: 600; padding: 0 4px; margin-left: 4px; min-height: 0; }
+.task.is-done .steps-toggle { color: var(--primary); }

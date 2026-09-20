@@ -7,6 +7,7 @@
 #   schedule: { type: interval, days: N }  N 日ごとが目安
 #   place: 一覧の見出し（キッチン / 風呂・洗面・トイレ / リビング・寝室 / 玄関・ベランダ / 家電 / 子ども用品 / その他）
 #   checklist: やり方の手順。ページの「詳細」で見える
+#   steps: 手順ごとに 1 タップで記録できる小分け（id は全体で一意）。全部記録すると 1 回完了、途中なら「残り完了」でまとめられる
 #   コツ（knowledge/cleaning/*.md）は、コツ側の tasks: にここの id を書くと「詳細」に添付される
 #   load は docs/SPEC.md §6.1（physical 1-3 / mental 1-3 / time_bound 0-2）
 
@@ -65,6 +66,10 @@
   checklist:
     - 期限切れを捨てる → 棚を 1 段ずつ拭く
     - 野菜室の底の新聞紙を替える
+  steps:
+    - { id: fridge-expired, title: 期限切れを捨てる, est_minutes: 5 }
+    - { id: fridge-shelves, title: 棚を 1 段ずつ拭く, est_minutes: 8 }
+    - { id: fridge-paper, title: 野菜室の新聞紙を替える, est_minutes: 2 }
 
 - id: fridge-deep
   title: 冷蔵庫の全棚清掃
@@ -76,6 +81,11 @@
   checklist:
     - 買い物前の空いている日にやる
     - 棚板は外してぬるま湯で洗う
+  steps:
+    - { id: fridge-empty, title: 中身を全部出す, est_minutes: 5 }
+    - { id: fridge-wash, title: 棚板を外して洗う, est_minutes: 12 }
+    - { id: fridge-wipe, title: 庫内を拭く, est_minutes: 8 }
+    - { id: fridge-back, title: 戻して日付を書く, est_minutes: 5 }
 
 - id: stove-grates
   title: コンロ五徳の焦げ落とし
@@ -87,6 +97,10 @@
   checklist:
     - 重曹 + 熱湯に 30 分つけ置き → 古歯ブラシ
     - 落ちない焦げは翌日もう一度つけ置き
+  steps:
+    - { id: grates-soak, title: 五徳を外して重曹湯につけ置き, est_minutes: 5 }
+    - { id: grates-scrub, title: こすり洗い, est_minutes: 20 }
+    - { id: grates-back, title: 乾かして戻す, est_minutes: 5 }
 
 - id: grill
   title: 魚焼きグリルの受け皿と網
@@ -98,6 +112,10 @@
   checklist:
     - 受け皿に水と重曹を入れて放置 → こする
     - 使うたびに受け皿に水を張っておくと溜まらない
+  steps:
+    - { id: grill-soak, title: 受け皿と網を外して重曹湯, est_minutes: 3 }
+    - { id: grill-scrub, title: こすり洗い, est_minutes: 12 }
+    - { id: grill-back, title: 庫内を拭いて戻す, est_minutes: 5 }
 
 - id: range-hood-filter
   title: 換気扇のフィルター
@@ -109,6 +127,10 @@
   checklist:
     - 外して重曹湯につけ置き → スポンジ
     - フィルターカバーを貼ると次回が楽
+  steps:
+    - { id: hoodf-soak, title: フィルターを外して重曹湯, est_minutes: 3 }
+    - { id: hoodf-scrub, title: つけ置き後にスポンジ, est_minutes: 12 }
+    - { id: hoodf-back, title: 乾かして戻す（カバーを貼る）, est_minutes: 5 }
 
 - id: range-hood
   title: 換気扇本体（ファン）
@@ -120,6 +142,11 @@
   checklist:
     - 電源を切る → ファンを外す → 重曹湯で 30 分つけ置き
     - これ 1 件で今日の掃除は十分
+  steps:
+    - { id: hood-remove, title: 電源を切ってファンを外す, est_minutes: 10 }
+    - { id: hood-soak, title: 重曹湯につけ置き（待つ間に周りを拭く）, est_minutes: 15 }
+    - { id: hood-scrub, title: ファンをこすって乾かす, est_minutes: 15 }
+    - { id: hood-back, title: 戻して動作確認, est_minutes: 5 }
 
 - id: trash-bins
   title: ゴミ箱の洗浄
@@ -133,6 +160,9 @@
     - 底に新聞紙を敷くと臭いが減る
 
 # ---- 風呂・洗面・トイレ ----
+  steps:
+    - { id: bins-wash, title: 風呂場で洗う, est_minutes: 7 }
+    - { id: bins-dry, title: 乾かして新聞紙を敷く, est_minutes: 3 }
 - id: bathroom-deep
   title: 浴室の防カビ＆排水口（しっかり）
   area: cleaning
@@ -144,6 +174,10 @@
     - 排水口のフタ・カゴ・ぬめりを取る
     - 壁・床・浴槽のフチをこすり洗い
     - 50℃ のシャワーを全面に 30 秒 → 換気
+  steps:
+    - { id: bathdeep-drain, title: 排水口のフタ・カゴ・ぬめり, est_minutes: 8 }
+    - { id: bathdeep-scrub, title: 壁・床・浴槽のフチをこすり洗い, est_minutes: 15 }
+    - { id: bathdeep-finish, title: 50℃ シャワー → 水切り → 換気, est_minutes: 7 }
 
 - id: bath-fungicide
   title: 防カビくん煙剤
@@ -166,6 +200,9 @@
   checklist:
     - 外せる部品は全部外して古歯ブラシ
     - 塩素系はゴム手袋と換気
+  steps:
+    - { id: bdp-scrub, title: 部品を外して古歯ブラシ, est_minutes: 7 }
+    - { id: bdp-back, title: 戻して湯を流す, est_minutes: 3 }
 
 - id: washbasin
   title: 洗面台と鏡
@@ -200,6 +237,9 @@
   checklist:
     - 便器の内側 → フチ裏 → 座面 → 床 → 壁の下 の順
     - 床と壁の下は飛び散りがあるので毎回
+  steps:
+    - { id: toilet-bowl, title: 便器の内側・フチ裏, est_minutes: 5 }
+    - { id: toilet-floor, title: 座面・床・壁の下, est_minutes: 5 }
 
 - id: toilet-deep
   title: トイレの奥・タンク・換気口
@@ -211,6 +251,10 @@
   checklist:
     - 便器と床の境目、タンクの後ろ、換気口のほこり
     - ウォシュレットのノズルを出して掃除
+  steps:
+    - { id: tdeep-edges, title: 便器と床の境目・タンクの後ろ, est_minutes: 6 }
+    - { id: tdeep-nozzle, title: ウォシュレットのノズル, est_minutes: 4 }
+    - { id: tdeep-vent, title: 換気口のほこり, est_minutes: 5 }
 
 - id: laundry-filter
   title: 洗濯機の糸くずフィルターと洗剤投入口
@@ -246,6 +290,9 @@
     - パイプ洗浄剤は月 1
 
 # ---- リビング・寝室 ----
+  steps:
+    - { id: drains-basin, title: 洗面のヘアキャッチャーとトラップ, est_minutes: 5 }
+    - { id: drains-washer, title: 洗濯機の排水口, est_minutes: 5 }
 - id: floor-vacuum
   title: 床の掃除機（全部屋）
   area: cleaning
@@ -256,6 +303,10 @@
   checklist:
     - 子どもの食べこぼしエリア → 廊下 → 寝室 の順
     - ロボット掃除機があるなら「床のものを上げる」が本体
+  steps:
+    - { id: vac-dining, title: 食べこぼしエリア, est_minutes: 4 }
+    - { id: vac-hall, title: 廊下, est_minutes: 3 }
+    - { id: vac-bedroom, title: 寝室, est_minutes: 3 }
 
 - id: floor-wipe
   title: 床の水拭き（食卓まわり）
@@ -289,6 +340,10 @@
   checklist:
     - ハンディモップで上から下へ、最後に掃除機
     - テレビ裏の配線まわりは静電気でたまる
+  steps:
+    - { id: dust-shelves, title: 棚の上・照明, est_minutes: 6 }
+    - { id: dust-tv, title: テレビ裏・配線, est_minutes: 5 }
+    - { id: dust-vacuum, title: 最後に掃除機, est_minutes: 4 }
 
 - id: walls-switches
   title: ドアノブ・スイッチ・手すりを拭く
@@ -311,6 +366,10 @@
   checklist:
     - 外す → 洗濯機へ → 替えを敷く、を一連で
     - 替えを 1 セット常備すると乾きを待たなくていい
+  steps:
+    - { id: sheets-off, title: 外して洗濯機へ, est_minutes: 4 }
+    - { id: sheets-on, title: 替えを敷く, est_minutes: 8 }
+    - { id: sheets-fold, title: 乾いたらたたんで収納, est_minutes: 3 }
 
 - id: windows
   title: 窓・サッシ（1 部屋ずつ）
@@ -322,6 +381,10 @@
   checklist:
     - サッシの溝は 掃除機 → ブラシ → 濡れ雑巾
     - 窓は曇りの日にやると拭き跡が残らない
+  steps:
+    - { id: win-rail, title: サッシの溝（掃除機 → ブラシ → 雑巾）, est_minutes: 8 }
+    - { id: win-inside, title: 窓ガラスの内側, est_minutes: 6 }
+    - { id: win-outside, title: 窓ガラスの外側, est_minutes: 6 }
 
 - id: screens
   title: 網戸
@@ -333,6 +396,9 @@
   checklist:
     - 外さずに、外側からメラミンスポンジかシャワー
     - 花粉と黄砂の後にやる
+  steps:
+    - { id: screen-wash, title: 外側からメラミン・シャワー, est_minutes: 12 }
+    - { id: screen-wipe, title: 拭き上げ・レールを拭く, est_minutes: 8 }
 
 - id: curtains
   title: カーテンの洗濯
@@ -345,6 +411,10 @@
     - フックを外して洗濯ネット → 脱水短め → 濡れたまま吊るす
 
 # ---- 玄関・ベランダ ----
+  steps:
+    - { id: curtain-off, title: フックを外してネットへ, est_minutes: 8 }
+    - { id: curtain-wash, title: 洗濯機を回す, est_minutes: 2 }
+    - { id: curtain-hang, title: 濡れたまま吊るす, est_minutes: 10 }
 - id: entrance-sweep
   title: 玄関の掃き掃除
   area: cleaning
@@ -366,6 +436,10 @@
   checklist:
     - 靴を出して靴箱の棚を拭く → たたきを水拭き
     - 履かない靴は処分候補
+  steps:
+    - { id: ent-shoebox, title: 靴を出して靴箱の棚を拭く, est_minutes: 8 }
+    - { id: ent-floor, title: たたきを水拭き, est_minutes: 5 }
+    - { id: ent-back, title: 靴を戻す（処分候補を分ける）, est_minutes: 2 }
 
 - id: garden-weeding
   title: 庭の草取り・除草
@@ -377,6 +451,10 @@
   checklist:
     - 雨の翌日は根ごと抜きやすい
     - 除草剤は風のない日に。子どもが触らない時間帯で
+  steps:
+    - { id: weed-pull, title: 目立つ草を抜く, est_minutes: 12 }
+    - { id: weed-bag, title: 集めて袋へ, est_minutes: 5 }
+    - { id: weed-tools, title: 道具を片付ける, est_minutes: 3 }
 
 - id: balcony
   title: ベランダの掃き掃除と排水口
@@ -390,6 +468,10 @@
     - 室外機のまわりも
 
 # ---- 家電 ----
+  steps:
+    - { id: balc-sweep, title: 掃き掃除, est_minutes: 6 }
+    - { id: balc-drain, title: 排水口の落ち葉と泥, est_minutes: 6 }
+    - { id: balc-ac, title: 室外機まわり, est_minutes: 3 }
 - id: aircon-filter
   title: エアコンのフィルター
   area: cleaning
@@ -399,6 +481,10 @@
   load: { physical: 2, mental: 1, time_bound: 0 }
   checklist:
     - 外して 掃除機 → 水洗い → 乾かす。冷房・暖房の季節は月 1
+  steps:
+    - { id: acf-vacuum, title: 外して掃除機, est_minutes: 4 }
+    - { id: acf-wash, title: 水洗いして乾かす, est_minutes: 4 }
+    - { id: acf-back, title: 戻す, est_minutes: 2 }
 
 - id: aircon-body
   title: エアコンの吹出口と本体拭き
@@ -412,6 +498,10 @@
     - 黒い点はカビ。増えたら業者を検討
 
 # ---- 子ども用品（子どもの世話そのものは管理対象外。物の掃除だけ）----
+  steps:
+    - { id: acb-vent, title: 電源を切って吹出口を拭く, est_minutes: 10 }
+    - { id: acb-outer, title: 本体の上と外側, est_minutes: 6 }
+    - { id: acb-test, title: ルーバーを戻して試運転, est_minutes: 4 }
 - id: toys-wipe
   title: おもちゃの拭き掃除・消毒
   area: cleaning
@@ -422,6 +512,9 @@
   checklist:
     - 口に入れるものを優先
     - 布のおもちゃは洗濯ネットで洗う
+  steps:
+    - { id: toys-mouth, title: 口に入れるおもちゃを拭く, est_minutes: 6 }
+    - { id: toys-cloth, title: 布のおもちゃをネットで洗濯, est_minutes: 4 }
 
 - id: kids-gear
   title: ベビーカー・チャイルドシートの拭き掃除
@@ -432,6 +525,9 @@
   load: { physical: 1, mental: 1, time_bound: 0 }
   checklist:
     - 食べかすは掃除機、ベルトはウェットシート
+  steps:
+    - { id: gear-stroller, title: ベビーカー（食べかす掃除機・ベルト拭き）, est_minutes: 8 }
+    - { id: gear-seat, title: チャイルドシート, est_minutes: 7 }
 
 - id: kids-storage
   title: 子どもの服・おもちゃのサイズアウト整理
@@ -445,6 +541,9 @@
     - 遊ばなくなったおもちゃは一旦しまう（ローテーション）
 
 # ---- その他（名もなき家事・段取り） ----
+  steps:
+    - { id: kst-clothes, title: きつくなった服を 1 袋抜く, est_minutes: 10 }
+    - { id: kst-toys, title: 遊ばないおもちゃをしまう, est_minutes: 10 }
 - id: supplies-check
   title: 消耗品の在庫チェックと注文
   area: nameless
@@ -454,7 +553,7 @@
   load: { physical: 1, mental: 2, time_bound: 0 }
   checklist:
     - トイレットペーパー・洗剤・おむつ・おしりふき・ゴミ袋
-    - 詰め替えボトルの残量を見て、1/4 以下は補充する（補充は「後から記録」の洗剤の補充へ）
+    - 詰め替えボトルの残量を見て、1/4 以下は補充する（補充したら「補充」カードで洗剤ごとに 1 タップ）
     - 残り 1 つになったものを注文
 
 - id: mail-papers
@@ -478,6 +577,9 @@
   checklist:
     - 主菜だけ 7 つ決める。副菜は在庫で
     - 決めたら買い物リストへ
+  steps:
+    - { id: wmenu-mains, title: 主菜を 7 つ決める, est_minutes: 10 }
+    - { id: wmenu-list, title: 買い物リストへ, est_minutes: 5 }
 
 - id: shopping-list
   title: 買い物リストの更新

@@ -26,7 +26,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -65,6 +65,20 @@ function monthsBetween(a, b) {
 const weightOf = r => { const l = r.load || {}; return round2(1 + (LOAD.physical[l.physical] ?? 0) + (LOAD.mental[l.mental] ?? 0) + (LOAD.time_bound[l.time_bound] ?? 0)); };
 const weighted = (r, minutes) => round1(minutes * weightOf(r));
 const routineById = id => state.routines.find(r => r.id === id);
+// 手順（steps）: 親タスクを細かく分けた小さなタスク。負荷 W・領域・コツは親から引き継ぎ、記録には parent が付く
+let stepIndexCache = null;
+const stepIndex = () => { if (!stepIndexCache) { stepIndexCache = new Map(); state.routines.forEach(r => (r.steps || []).forEach(st => stepIndexCache.set(st.id, { step: st, parent: r }))); } return stepIndexCache; };
+const stepById = id => stepIndex().get(id);
+const stepsOf = r => (r && Array.isArray(r.steps)) ? r.steps : [];
+function stepTask(id) {
+  const x = stepById(id); if (!x) return null; const { step, parent } = x;
+  return { id: step.id, title: `${parent.title} › ${step.title}`, area: parent.area, load: parent.load, est_minutes: +step.est_minutes || 1, quick_minutes: [], checklist: [], tips: parent.tips, parent: parent.id, core: false, slots: parent.slots, schedule: { type: 'step' } };
+}
+const taskById = id => routineById(id) || stepTask(id);
+const isRefill = r => !!r && r.kind === 'refill';
+const REFILL_GROUPS = ['台所', '洗濯', '浴室・洗面', 'トイレ', '掃除用', '消耗品'];
+// 記録済みの手順の見込みを引いた「残り」の分
+const restMinutes = (r, doneIds) => Math.max(1, Math.round(r.est_minutes - stepsOf(r).filter(st => doneIds.has(st.id)).reduce((m, st) => m + (+st.est_minutes || 0), 0)));
 function cronDow(field, d) {
   if (!field || field === '*' || field === '?') return true;
   const num = t => { const i = DOW_EN.indexOf(String(t).toUpperCase()); return (i >= 0 ? i : Number(t)) % 7; };
@@ -206,6 +220,7 @@ function render() {
   $('#tip').innerHTML = tipHTML(date, entries);
   $('#basics').innerHTML = basicsHTML();
   $('#quick').innerHTML = quickHTML(todays);
+  $('#refill').innerHTML = refillHTML(date, entries);
   $('#week').innerHTML = weekHTML(today, date, entries);
   $('#achievements').innerHTML = achievementsHTML(today, date, entries, all);
   $('#today-log').innerHTML = logHTML(date, todays);
@@ -228,32 +243,63 @@ function progressHTML(today, date, entries) {
     <div class="bar"><div class="fill" style="width:${Math.min(100, pct)}%"></div></div>
     <div class="sub">Week ${t.weekNo} ・ 目標比率 ${Math.round(t.ratio * 100)}%${t.penalty ? `（未達が続いたので ${t.penalty} 段階下げ）` : ''} ・ この日を入れて残り ${left} 日 ・ 前の週 ${last} 分</div>`;
 }
-function taskRowHTML(r, sid, done) {
-  const tl = timeLabel(r); let meta, btns;
-  if (done.length) {
-    const act = done.reduce((s, e) => s + (+e.actual_minutes || 0), 0), wm = done.reduce((s, e) => s + (+e.weighted_minutes || 0), 0);
+// 手順ブロック（今日のタスク・掃除メニュー共通）。doneMap: 手順 id → その手順の記録（配列）
+function stepsBlockHTML(r, key, sid, doneMap, open, showDate) {
+  const steps = stepsOf(r); if (!steps.length) return { toggle: '', list: '' };
+  const n = steps.filter(st => (doneMap[st.id] || []).length).length;
+  const toggle = ` ・ <button class="steps-toggle" data-act="steps-toggle" data-key="${esc(key)}" aria-expanded="${open ? 'true' : 'false'}">手順 ${n}/${steps.length} ${open ? '▴' : '▾'}</button>`;
+  const slotAttr = sid ? ` data-slot="${sid}"` : '';
+  const rows = steps.map(st => {
+    const done = doneMap[st.id] || []; const est = +st.est_minutes || 1;
+    if (done.length) {
+      const act = done.reduce((a, e) => a + (+e.actual_minutes || 0), 0), wm = done.reduce((a, e) => a + (+e.weighted_minutes || 0), 0); const last = done[done.length - 1];
+      const when = showDate && last.date && last.date !== viewDate() ? `${esc(last.date.slice(5).replace('-', '/'))} ` : '';
+      return `<li class="step is-done" data-id="${esc(st.id)}"><span class="ck">✓</span><span class="nm">${esc(st.title)}</span><span class="mt">${when}${act}分 → ${Math.round(wm)}</span>${last.id ? `<button class="ghost tiny" data-act="undo" data-entry="${esc(last.id)}" aria-label="取り消し">×</button>` : ''}</li>`;
+    }
+    return `<li class="step" data-id="${esc(st.id)}"><span class="ck"></span><span class="nm">${esc(st.title)}</span><span class="mt">${est}分</span><button class="ghost tiny" data-act="detail"${slotAttr} data-min="${est}" aria-label="詳細">…</button><button class="primary tiny" data-act="done"${slotAttr} data-min="${est}">完了</button></li>`;
+  }).join('');
+  return { toggle, list: open ? `<ul class="steps">${rows}</ul>` : '' };
+}
+// 手順の開閉。押して変えていなければ、途中まで記録があるときだけ開く
+const stepsOpen = (key, partial) => { const ex = state.openSteps.get(key); return ex !== undefined ? ex : partial; };
+// その日の記録を「親そのもの」と「手順」に分ける。親の記録があるか、手順が全部そろえば完了
+function doneParts(r, sid, todays) {
+  const entries = todays.filter(e => (e.task_id === r.id || e.parent === r.id) && EARNED.has(e.status) && entrySlot(e, r) === sid);
+  const own = entries.filter(e => e.task_id === r.id); const doneMap = {};
+  entries.forEach(e => { if (e.parent === r.id) (doneMap[e.task_id] || (doneMap[e.task_id] = [])).push(e); });
+  const steps = stepsOf(r); const doneIds = new Set(Object.keys(doneMap));
+  const complete = own.length > 0 || (steps.length > 0 && steps.every(st => doneIds.has(st.id)));
+  return { entries, own, doneMap, doneIds, complete, rest: restMinutes(r, doneIds) };
+}
+function taskRowHTML(r, sid, p) {
+  const tl = timeLabel(r); const key = `${r.id}:${sid}`; const partial = p.doneIds.size > 0 && !p.complete;
+  const sb = stepsBlockHTML(r, key, sid, p.doneMap, stepsOpen(key, partial), false);
+  let meta, btns;
+  if (p.complete) {
+    const done = p.entries;
+    const act = done.reduce((a, e) => a + (+e.actual_minutes || 0), 0), wm = done.reduce((a, e) => a + (+e.weighted_minutes || 0), 0);
     const moods = done.filter(e => e.mood).map(e => MOODS[e.mood - 1]).join('');
     meta = `✓ ${act}分 → 換算 ${Math.round(wm)}分${done.length > 1 ? `（${done.length} 回）` : ''}${done.some(e => e.status === 'partial') ? '（70点）' : ''}${moods ? ' ' + moods : ''}`;
     btns = `<button class="ghost small" data-act="detail" data-slot="${sid}">追加</button><button class="ghost small" data-act="undo" data-entry="${esc(done[done.length - 1].id || '')}">取り消し</button>`;
   } else {
-    meta = `${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分${tl ? ' ・ ' + tl : ''}`;
-    btns = `<button class="ghost small" data-act="detail" data-slot="${sid}">詳細</button><button class="primary" data-act="done" data-slot="${sid}">完了</button>`;
+    const est = partial ? p.rest : r.est_minutes;
+    meta = `${partial ? `残り ${est}分` : `${r.est_minutes}分`} → 換算 ${Math.round(weighted(r, est))}分${tl ? ' ・ ' + tl : ''}`;
+    btns = `<button class="ghost small" data-act="detail" data-slot="${sid}" data-min="${est}">詳細</button><button class="primary" data-act="done" data-slot="${sid}" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
   }
-  return `<li class="task${done.length ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)}${r.core ? ' <span class="badge core">core</span>' : ''}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
+  return `<li class="task${p.complete ? ' is-done' : ''}" data-id="${esc(r.id)}" data-slot="${sid}"><div class="main"><div class="title">${esc(r.title)}${r.core ? ' <span class="badge core">core</span>' : ''}</div><div class="meta">${meta}${sb.toggle}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
 }
 function tasksHTML(date, todays, entries) {
   const due = state.routines.filter(r => dueToday(r, date));
-  const pairs = []; due.forEach(r => slotsOf(r).forEach(sid => pairs.push({ r, sid })));
-  const doneOf = (r, sid) => todays.filter(e => e.task_id === r.id && EARNED.has(e.status) && entrySlot(e, r) === sid);
-  const remaining = pairs.filter(p => !doneOf(p.r, p.sid).length);
-  const est = remaining.reduce((s, p) => s + Math.round(weighted(p.r, p.r.est_minutes)), 0);
+  const pairs = []; due.forEach(r => slotsOf(r).forEach(sid => pairs.push({ r, sid, p: doneParts(r, sid, todays) })));
+  const remaining = pairs.filter(x => !x.p.complete);
+  const est = remaining.reduce((sum, x) => sum + Math.round(weighted(x.r, x.p.doneIds.size ? x.p.rest : x.r.est_minutes)), 0);
   const perWeek = +(state.config.pass && state.config.pass.per_week) || 0;
   const ws = mondayOf(date); const passUsed = entries.filter(e => e.status === 'passed' && e.date >= ws && e.date <= addDays(ws, 6)).length;
   const passedToday = todays.some(e => e.status === 'passed');
-  const sections = SLOTS.map(s => {
-    const items = pairs.filter(p => p.sid === s.id); if (!items.length) return '';
-    const left = items.filter(p => !doneOf(p.r, p.sid).length).length;
-    return `<h3 class="group slot">${s.ja} <span class="sub">${left ? `残り ${left} 件` : '全部完了'}</span></h3><ul class="tasks">${items.map(p => taskRowHTML(p.r, p.sid, doneOf(p.r, p.sid))).join('')}</ul>`;
+  const sections = SLOTS.map(sl => {
+    const items = pairs.filter(x => x.sid === sl.id); if (!items.length) return '';
+    const left = items.filter(x => !x.p.complete).length;
+    return `<h3 class="group slot">${sl.ja} <span class="sub">${left ? `残り ${left} 件` : '全部完了'}</span></h3><ul class="tasks">${items.map(x => taskRowHTML(x.r, x.sid, x.p)).join('')}</ul>`;
   }).join('');
   const head = remaining.length ? `残り ${remaining.length} 件 ・ 見込み ${est} 換算分` : (pairs.length ? '全部完了 🎉' : '');
   const pass = passedToday
@@ -264,21 +310,32 @@ function tasksHTML(date, todays, entries) {
 // 掃除メニュー（schedule.type: interval）。前回からの経過日数 ÷ 目安日数 が大きい順。未実施は 1.5 扱い
 const isMenu = r => r.schedule && r.schedule.type === 'interval';
 function menuItems(date, entries) {
-  const last = {};
-  entries.forEach(e => { if (EARNED.has(e.status) && (!last[e.task_id] || e.date > last[e.task_id])) last[e.task_id] = e.date; });
+  const last = {}; const prog = {};   // prog[id]: Map(手順 id → 記録)。目安日数の範囲内で手順が全部そろったら 1 回完了
+  entries.filter(e => EARNED.has(e.status)).slice().sort((a, b) => a.date.localeCompare(b.date)).forEach(e => {
+    if (e.parent) {
+      const r = routineById(e.parent); if (!r || !isMenu(r)) return;
+      const days = Math.max(1, +r.schedule.days || 7); const m = prog[r.id] || (prog[r.id] = new Map());
+      m.set(e.task_id, e);
+      for (const [k, v] of m) if (daysBetween(v.date, e.date) > days) m.delete(k);
+      if (stepsOf(r).length && stepsOf(r).every(st => m.has(st.id))) { last[r.id] = e.date; m.clear(); }
+    } else if (!last[e.task_id] || e.date > last[e.task_id]) { last[e.task_id] = e.date; if (prog[e.task_id]) prog[e.task_id].clear(); }
+  });
   return state.routines.filter(isMenu).map(r => {
     const days = Math.max(1, +r.schedule.days || 7); const ld = last[r.id]; const since = ld ? daysBetween(ld, date) : null;
-    return { r, days, since, score: since === null ? 1.5 : since / days };
+    const doneMap = {}; for (const [k, v] of (prog[r.id] || new Map())) if (daysBetween(v.date, date) <= days) doneMap[k] = [v];
+    return { r, days, since, score: since === null ? 1.5 : since / days, doneMap, doneIds: new Set(Object.keys(doneMap)) };
   }).sort((a, b) => b.score - a.score || a.days - b.days || a.r.est_minutes - b.r.est_minutes);
 }
 function menuRowHTML(i, big) {
-  const { r, days, since, score } = i; const done = since === 0;
+  const { r, days, since, score, doneMap, doneIds } = i; const done = since === 0; const partial = doneIds.size > 0 && !done;
+  const key = `menu:${r.id}`; const sb = stepsBlockHTML(r, key, '', doneMap, stepsOpen(key, partial), true);
   const when = since === null ? '前回 まだ' : done ? 'この日やった' : `前回 ${since}日前`;
   const badge = done ? '' : big ? '<span class="badge big">大物</span>' : score >= 1 ? '<span class="badge due">そろそろ</span>' : '';
   const later = !done && score < 1 && since !== null ? ` ・ あと ${Math.max(1, Math.ceil(days - since))} 日` : '';
-  const meta = `${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ 目安 ${days}日ごと ・ ${when}${later}`;
-  const btns = done ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : '<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done">完了</button>';
-  return `<li class="task${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
+  const est = partial ? restMinutes(r, doneIds) : r.est_minutes;
+  const meta = `${partial ? `残り ${est}分` : `${r.est_minutes}分`} → 換算 ${Math.round(weighted(r, est))}分 ・ 目安 ${days}日ごと ・ ${when}${later}${sb.toggle}`;
+  const btns = done ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : `<button class="ghost small" data-act="detail" data-min="${est}">詳細</button><button class="primary" data-act="done" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
+  return `<li class="task${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
 }
 function menuHTML(date, entries) {
   const items = menuItems(date, entries); if (!items.length) return '';
@@ -363,7 +420,7 @@ function openChapter(id, scroll) {
   if (scroll) { const el = document.getElementById('ch-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 function quickHTML(todays) {
-  const manual = state.routines.filter(r => r.schedule && r.schedule.type === 'manual');
+  const manual = state.routines.filter(r => r.schedule && r.schedule.type === 'manual' && !isRefill(r));
   if (!manual.length) return '';
   const rows = manual.map(r => {
     const done = todays.filter(e => e.task_id === r.id && EARNED.has(e.status));
@@ -373,6 +430,42 @@ function quickHTML(todays) {
     return `<div class="quick-row"><div class="title">${esc(r.title)}${done.length ? ` <span class="badge">${done.length}回 ・ 換算 ${sum}分</span>` : ''}</div><div class="chips">${chips}<button class="chip ghost" data-act="detail" data-id="${esc(r.id)}">詳細</button></div></div>`;
   }).join('');
   return `<h2>後から記録 <span class="sub">終わってから 1 タップ。時間帯は今の時刻で自動</span></h2>${rows}`;
+}
+// 補充（routines/refill.yml、kind: refill）。洗剤・消耗品ごとに 1 タスク。記録 2 回以上なら実際の間隔から次の目安を出す
+function refillItems(date, entries) {
+  const dates = {};
+  entries.forEach(e => { if (EARNED.has(e.status)) (dates[e.task_id] || (dates[e.task_id] = new Set())).add(e.date); });
+  return state.routines.filter(isRefill).map(r => {
+    const ds = [...(dates[r.id] || [])].sort(); const n = ds.length; const last = n ? ds[n - 1] : null;
+    const avg = n >= 2 ? Math.max(1, Math.round(daysBetween(ds[0], last) / (n - 1))) : 0;
+    const days = avg || +r.interval_days || 30;
+    const since = last ? daysBetween(last, date) : null; const next = since === null ? null : days - since;
+    return { r, n, since, days, avg, next, due: since !== null && since !== 0 && next <= 3 };
+  });
+}
+function refillRowHTML(i) {
+  const { r, n, since, days, avg, next, due } = i; const today = since === 0;
+  const when = since === null ? 'まだ記録なし' : today ? 'この日 補充' : `前回 ${since}日前`;
+  const cyc = avg ? `だいたい ${avg}日ごと` : `目安 ${days}日ごと`;
+  const later = !today && next !== null && next > 3 ? ` ・ あと ${next} 日` : '';
+  const badge = today ? '' : due ? '<span class="badge due">そろそろ</span>' : '';
+  const meta = `${when} ・ ${cyc}${later}${n ? ` ・ ${n} 回` : ''}`;
+  const btns = today ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : `<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done" data-min="${+r.est_minutes || 3}">補充した</button>`;
+  return `<li class="task${today ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
+}
+function refillHTML(date, entries) {
+  const items = refillItems(date, entries); if (!items.length) return '';
+  const picks = [...items.filter(i => i.due).sort((a, b) => a.next - b.next), ...items.filter(i => i.since === 0)];
+  let full = '';
+  if (state.showRefill) {
+    const groups = new Map();
+    items.forEach(i => { const g = i.r.group || 'その他'; if (!groups.has(g)) groups.set(g, []); groups.get(g).push(i); });
+    const order = [...REFILL_GROUPS.filter(g => groups.has(g)), ...[...groups.keys()].filter(g => !REFILL_GROUPS.includes(g))];
+    full = order.map(g => `<h3 class="group">${esc(g)}</h3><ul class="tasks">${groups.get(g).map(refillRowHTML).join('')}</ul>`).join('');
+  }
+  return `<h2>補充 <span class="sub">洗剤・消耗品ごとに 1 タップ。2 回目から次の目安が出る</span></h2>
+    ${picks.length ? `<ul class="tasks">${picks.map(refillRowHTML).join('')}</ul>` : '<p class="empty">そろそろの物はない。詰め替えたら「全部見る」から 1 タップ</p>'}
+    <button class="ghost small wide" data-act="refill-toggle">${state.showRefill ? '閉じる' : `全部見る（${items.length} 種）`}</button>${full}`;
 }
 function weekHTML(today, date, entries) {
   const ws = mondayOf(date); const days = [...Array(7)].map((_, i) => addDays(ws, i));
@@ -385,7 +478,7 @@ function weekHTML(today, date, entries) {
 }
 function logRowHTML(e, showDate) {
   const time = e.ts ? String(e.ts).slice(11, 16) : ''; const st = e.status === 'partial' ? '70点' : e.status === 'tip' ? 'コツ' : '';
-  const slot = SLOT_JA[entrySlot(e, routineById(e.task_id))] || '';
+  const slot = SLOT_JA[entrySlot(e, taskById(e.task_id))] || '';
   const when = showDate ? esc(e.date.slice(5).replace('-', '/')) : esc(time);
   return `<li><span class="t">${when}</span><span class="n">${esc(e.title || e.task_id)} <span class="badge">${slot}</span>${st ? ` <span class="badge">${st}</span>` : ''}${e.mood ? ' ' + MOODS[e.mood - 1] : ''}${e.learned ? `<div class="note">💡 ${esc(e.learned)}</div>` : ''}</span><span class="m">${EARNED.has(e.status) ? `${e.actual_minutes}分 → ${Math.round(e.weighted_minutes)}` : ''}</span>${e.id ? `<button class="ghost tiny" data-act="undo" data-entry="${esc(e.id)}" aria-label="取り消し">×</button>` : ''}</li>`;
 }
@@ -399,14 +492,14 @@ function renderSearch(date, todays, entries) {
   const q = norm(state.q).trim(); const box = $('#search-results');
   if (!q) { box.innerHTML = ''; return; }
   const terms = q.split(/\s+/).filter(Boolean); const hit = s => { const n = norm(s); return terms.every(t => n.includes(t)); };
-  const routines = state.routines.filter(r => hit([r.title, r.id, r.place, AREA_JA[r.area], ...(r.checklist || [])].join(' '))).slice(0, 12);
+  const routines = state.routines.filter(r => hit([r.title, r.id, r.place, r.group, AREA_JA[r.area], ...(r.checklist || []), ...stepsOf(r).map(st => st.title)].join(' '))).slice(0, 12);
   const tips = state.tips.filter(t => hit([t.title, t.body, t.action, t.topic, ...(t.tags || [])].join(' '))).slice(0, 10);
   const logs = entries.filter(e => hit([e.title, e.learned, e.task_id].join(' '))).slice(-8).reverse();
   const chapters = state.basics.filter(c => hit([c.title, c.summary, c.text].join(' ')));
   const stats = tipStats(entries);
   const rHtml = routines.map(r => {
     const done = todays.filter(e => e.task_id === r.id && EARNED.has(e.status)); const s = r.schedule || {};
-    const kind = s.type === 'interval' ? `目安 ${s.days}日ごと` : s.type === 'manual' ? '後から記録' : s.type === 'weekly' ? `毎週 ${s.day}` : '毎日';
+    const kind = s.type === 'interval' ? `目安 ${s.days}日ごと` : s.type === 'manual' ? (isRefill(r) ? '補充' : '後から記録') : s.type === 'weekly' ? `毎週 ${s.day}` : '毎日';
     return `<li class="task" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)}</div><div class="meta">${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ ${kind}${done.length ? ` ・ この日 ${done.length} 回` : ''}</div></div><div class="btns"><button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done">完了</button></div></li>`;
   }).join('');
   const html = (routines.length ? `<h3 class="group">タスク（${routines.length}）</h3><ul class="tasks">${rHtml}</ul>` : '')
@@ -424,32 +517,43 @@ const nextLevelXp = lv => (lv + 1) * (lv + 1) * 100;
 function newStats() {
   return { n: 0, byTask: {}, byArea: {}, weighted: 0, weightedByArea: {}, xpByArea: {}, days: new Set(), passDays: new Set(), coreDays: new Set(),
     streakCur: 0, streakBest: 0, coreStreakCur: 0, coreStreakBest: 0, passes: 0, partials: 0, learned: 0, practiced: 0, tipStage: {},
-    fast: {}, long: {}, slotDays: {}, dayCount: {}, morningCount: {}, early: 0, resume: 0, placeLast: {}, weekTotal: {}, areaDays: {}, lastDay: '' };
+    fast: {}, long: {}, slotDays: {}, dayCount: {}, morningCount: {}, early: 0, resume: 0, placeLast: {}, weekTotal: {}, areaDays: {}, lastDay: '',
+    byKind: {}, stepEntries: 0, stepSets: {}, stepsComplete: 0 };
 }
 function statAdd(st, e) {
   if (e.tip_id) { const t = st.tipStage[e.tip_id] || (st.tipStage[e.tip_id] = { stage: 0 }); if (e.tip_practiced) { t.stage = Math.min(t.stage + 1, TIP_INTERVALS.length - 1); st.practiced++; } else t.stage = Math.max(0, t.stage - 1); }
   if (e.status === 'passed') { st.passes++; st.passDays.add(e.date); return; }
   if (!EARNED.has(e.status)) return;
-  const r = routineById(e.task_id); const area = e.area || (r && r.area) || 'nameless'; const day = e.date;
-  st.n++; st.byTask[e.task_id] = (st.byTask[e.task_id] || 0) + 1; st.byArea[area] = (st.byArea[area] || 0) + 1;
+  const sx = stepById(e.task_id); const r = sx ? sx.parent : routineById(e.task_id); const pid = r ? r.id : e.task_id;   // 手順の記録は親のタスクに数える
+  const area = e.area || (r && r.area) || 'nameless'; const day = e.date;
+  st.n++; st.byArea[area] = (st.byArea[area] || 0) + 1;
+  if (!sx) st.byTask[pid] = (st.byTask[pid] || 0) + 1;   // 手順だけの記録は、その日に手順が全部そろった時点で親 1 回と数える（statEndDay）
+  if (r && r.kind) st.byKind[r.kind] = (st.byKind[r.kind] || 0) + 1;
+  if (sx) { st.stepEntries++; const k = `${day}|${pid}|${entrySlot(e, r)}`; (st.stepSets[k] || (st.stepSets[k] = new Set())).add(e.task_id); }
   const wm = +e.weighted_minutes || 0; st.weighted += wm; st.weightedByArea[area] = (st.weightedByArea[area] || 0) + wm;
   st.xpByArea[area] = (st.xpByArea[area] || 0) + (Number.isFinite(+e.xp) ? +e.xp : Math.round(wm));
   const wn = weekNoOf(day); st.weekTotal[wn] = (st.weekTotal[wn] || 0) + wm;
   if (e.status === 'partial') st.partials++;
   if (e.learned) st.learned++;
   const act = +e.actual_minutes || 0;
-  if (r && r.est_minutes && act > 0 && act <= r.est_minutes / 2) st.fast[e.task_id] = (st.fast[e.task_id] || 0) + 1;
-  if (act >= 30) st.long[e.task_id] = (st.long[e.task_id] || 0) + 1;
+  if (!sx && r && r.est_minutes && act > 0 && act <= r.est_minutes / 2) st.fast[pid] = (st.fast[pid] || 0) + 1;
+  if (act >= 30) st.long[pid] = (st.long[pid] || 0) + 1;
   const sl = entrySlot(e, r);
-  const sd = st.slotDays[e.task_id] || (st.slotDays[e.task_id] = {}); (sd[day] || (sd[day] = new Set())).add(sl);
+  const sd = st.slotDays[pid] || (st.slotDays[pid] = {}); (sd[day] || (sd[day] = new Set())).add(sl);
   st.dayCount[day] = (st.dayCount[day] || 0) + 1;
   if (sl === 'morning') st.morningCount[day] = (st.morningCount[day] || 0) + 1;
   const m = /T(\d\d):(\d\d)/.exec(String(e.ts || '')); if (m) { const hm = +m[1] * 60 + +m[2]; if (hm >= 180 && hm < 330) st.early++; }
-  if (r && isMenu(r)) st.placeLast[r.place || 'その他'] = day;
+  if (r && isMenu(r) && !sx) st.placeLast[r.place || 'その他'] = day;
   (st.areaDays[day] || (st.areaDays[day] = new Set())).add(area);
   if (r && r.core) st.coreDays.add(day);
 }
 function statEndDay(st, day) {
+  Object.keys(st.stepSets).forEach(k => {   // その日、手順を全部たどって終えたタスクを数える（親 1 回の完了としても数える）
+    if (!k.startsWith(day + '|')) return;
+    const pid = k.split('|')[1]; const r = routineById(pid);
+    if (r && stepsOf(r).length && stepsOf(r).every(x => st.stepSets[k].has(x.id))) { st.stepsComplete++; st.byTask[pid] = (st.byTask[pid] || 0) + 1; }
+    delete st.stepSets[k];
+  });
   const counted = (st.dayCount[day] || 0) > 0 || st.passDays.has(day);
   if (counted) {
     const prev = addDays(day, -1);
@@ -475,6 +579,7 @@ function weekResults(st, day) {
 function measure(b, st, earned, day) {
   const c = b.condition || {}; const gte = +c.gte || 1;
   const countOf = () => {
+    if (c.kind) return st.byKind[c.kind] || 0;
     if (c.task) return st.byTask[c.task] || 0;
     if (Array.isArray(c.tasks)) return c.tasks.reduce((s, id) => s + (st.byTask[id] || 0), 0);
     if (c.area) return st.byArea[c.area] || 0;
@@ -525,6 +630,8 @@ function customMeasure(c, st, day, gte) {
     case 'tip_stage': return { v: Object.values(st.tipStage).filter(t => t.stage >= TIP_INTERVALS.length - 1).length, t: gte };
     case 'best_week': { const wr = weekResults(st, day).list; let best = -1, v = 0; wr.forEach((x, i) => { if (i > 0 && x.total > best) v++; best = Math.max(best, x.total); }); return { v, t: gte }; }
     case 'ramp_top': return { v: ratioFor(weekNoOf(day), weekResults(st, day).penalty) >= 1 ? 1 : 0, t: 1 };
+    case 'step_entries': return { v: st.stepEntries, t: gte };
+    case 'steps_complete': return { v: st.stepsComplete, t: gte };
   }
   return { v: 0, t: 1 };
 }
@@ -617,6 +724,7 @@ async function record(r, { minutes, mood, learned, status = 'done', tip_id, tip_
   if (!requireToken()) return;
   const e = baseEntry();
   Object.assign(e, { task_id: r.id, title: r.title, area: r.area, slot: SLOT_JA[slot] ? slot : currentSlot(), status, mode: 'full', actual_minutes: minutes, weight: weightOf(r), weighted_minutes: weighted(r, minutes), xp: Math.round(weighted(r, minutes)) });
+  if (r.parent) e.parent = r.parent;   // 手順の記録。親タスクの id
   if (tip_id) { e.tip_id = tip_id; e.tip_practiced = !!tip_practiced; }
   if (mood) e.mood = mood;
   if (learned) e.learned = learned;
@@ -659,11 +767,13 @@ $('#app').addEventListener('click', ev => {
   const b = ev.target.closest('button[data-act]'); if (!b || b.disabled) return;
   if (state.busy && !/^chapter/.test(b.dataset.act) && !/toggle|tip-next/.test(b.dataset.act)) return;
   const host = b.closest('[data-id]'); const id = b.dataset.id || (host ? host.dataset.id : '');
-  const r = routineById(id);
+  const r = taskById(id);
   switch (b.dataset.act) {
-    case 'done': if (r) record(r, { minutes: +r.est_minutes, slot: b.dataset.slot }); break;
+    case 'done': if (r) record(r, { minutes: +b.dataset.min || +r.est_minutes, slot: b.dataset.slot }); break;
     case 'quick': if (r) record(r, { minutes: +b.dataset.min }); break;
-    case 'detail': if (r) openDetail(r, b.dataset.slot); break;
+    case 'detail': if (r) openDetail(r, b.dataset.slot, +b.dataset.min || 0); break;
+    case 'steps-toggle': state.openSteps.set(b.dataset.key, b.getAttribute('aria-expanded') !== 'true'); render(); break;
+    case 'refill-toggle': state.showRefill = !state.showRefill; render(); break;
     case 'undo': undo(b.dataset.entry); break;
     case 'pass': recordPass(); break;
     case 'menu-toggle': state.showMenu = !state.showMenu; render(); break;
@@ -678,13 +788,13 @@ $('#app').addEventListener('click', ev => {
 
 // 詳細ダイアログ（時間・時間帯・気分・気づき・コツ・70点完了）
 let detailRoutine = null, detailMood = 0, detailMin = 0, detailTip = null, detailSlot = 'night';
-function openDetail(r, slot) {
-  detailRoutine = r; detailMood = 0; detailMin = +r.est_minutes || 0; detailSlot = SLOT_JA[slot] ? slot : currentSlot();
+function openDetail(r, slot, min) {
+  detailRoutine = r; detailMood = 0; detailMin = +min || +r.est_minutes || 0; detailSlot = SLOT_JA[slot] ? slot : currentSlot();
   detailTip = tipForRoutine(r, tipStats(allEntries()));
   $('#detail-tip-wrap').hidden = !detailTip;
   if (detailTip) { $('#detail-tip').innerHTML = tipBoxHTML(detailTip); $('#detail-tip-practiced').checked = false; }
   $('#detail-title').textContent = r.title; $('#detail-w').textContent = `W=${weightOf(r).toFixed(2)}${isToday() ? '' : ` ・ ${jaDate(viewDate())} に記録`}`;
-  const opts = [...new Set([+r.est_minutes, ...(r.quick_minutes || []).map(Number), 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120].filter(n => n > 0))].sort((a, b) => a - b);
+  const opts = [...new Set([detailMin, +r.est_minutes, ...(r.quick_minutes || []).map(Number), 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120].filter(n => n > 0))].sort((a, b) => a - b);
   $('#detail-minutes').innerHTML = opts.map(m => `<button type="button" class="chip${m === detailMin ? ' is-on' : ''}" data-min="${m}">${m}分</button>`).join('');
   $('#detail-slot').innerHTML = SLOTS.map(s => `<button type="button" class="chip${s.id === detailSlot ? ' is-on' : ''}" data-slot="${s.id}">${s.ja}</button>`).join('');
   $('#detail-mood').innerHTML = MOODS.map((m, i) => `<button type="button" class="chip" data-mood="${i + 1}">${m}</button>`).join('');
@@ -758,7 +868,7 @@ async function init() {
   try {
     const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); });
     const [routines, config, tips, basics, badges] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => []), get('data/basics.json').catch(() => []), get('data/badges.json').catch(() => [])]);
-    state.routines = Array.isArray(routines) ? routines : []; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
+    state.routines = Array.isArray(routines) ? routines : []; stepIndexCache = null; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
   } catch (e) { $('#tasks').innerHTML = `<p class="empty">設定の読み込みに失敗: ${esc(e.message)}</p>`; return; }
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;

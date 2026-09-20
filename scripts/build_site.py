@@ -19,6 +19,7 @@ FRONT_MATTER = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)$", re.S)
 LOAD_RANGES = {"physical": {1, 2, 3}, "mental": {1, 2, 3}, "time_bound": {0, 1, 2}}
 SCHEDULE_TYPES = {"cron", "daily", "weekly", "monthly", "seasonal", "manual", "interval"}
 REQUIRED = ("id", "title", "area", "schedule", "est_minutes", "load")
+KINDS = {"refill"}   # kind: 補充（routines/refill.yml）。ページの「補充」カードに出す
 
 
 def fail(msg):
@@ -51,6 +52,21 @@ def load_routines():
                     fail(f"{rid}: load.{key} は {sorted(allowed)} のどれか")
             if not isinstance(r["est_minutes"], (int, float)) or r["est_minutes"] <= 0:
                 fail(f"{rid}: est_minutes は正の数")
+            if r.get("kind") is not None and r["kind"] not in KINDS:
+                fail(f"{rid}: kind は {sorted(KINDS)} のどれか")
+            if "interval_days" in r and not (isinstance(r["interval_days"], int) and r["interval_days"] > 0):
+                fail(f"{rid}: interval_days は正の整数")
+            steps = r.get("steps") or []
+            if not isinstance(steps, list):
+                fail(f"{rid}: steps はリストにする")
+            for st in steps:   # 手順: id は全体で一意（記録の task_id になる）。負荷と領域は親から引き継ぐ
+                if not isinstance(st, dict) or not st.get("id") or not st.get("title"):
+                    fail(f"{rid}: steps の各項目に id と title が要る")
+                if not isinstance(st.get("est_minutes"), (int, float)) or st["est_minutes"] <= 0:
+                    fail(f"{rid}: 手順 {st['id']} の est_minutes は正の数")
+                if st["id"] in seen:
+                    fail(f"{path}: id が重複 {st['id']}（手順）")
+                seen.add(st["id"])
             routines.append(r)
     return routines
 
@@ -112,7 +128,8 @@ def load_basics():
 
 BADGE_TYPES = {"count", "streak", "weighted_total", "target_hit", "level", "first", "combo", "custom"}
 CUSTOM_KEYS = {"fast", "long", "both_slots", "trio", "day_entries", "morning_entries", "weekend_days", "early",
-               "core_streak", "resume", "all_places", "everyday_weeks", "tip_stage", "best_week", "ramp_top"}
+               "core_streak", "resume", "all_places", "everyday_weeks", "tip_stage", "best_week", "ramp_top",
+               "step_entries", "steps_complete"}
 
 
 def load_badges(routines):
@@ -125,7 +142,7 @@ def load_badges(routines):
     if not m:
         fail("docs/badges.md に ```yaml ブロックが無い")
     badges = yaml.safe_load(m.group(1)) or []
-    ids, rids = set(), {r["id"] for r in routines}
+    ids, rids = set(), {r["id"] for r in routines} | {st["id"] for r in routines for st in (r.get("steps") or [])}
     for b in badges:
         for key in ("id", "name", "icon", "cat", "condition"):
             if key not in b:
@@ -138,6 +155,8 @@ def load_badges(routines):
             fail(f"badges: {b['id']} の type は {sorted(BADGE_TYPES)} のどれか")
         if c.get("type") == "custom" and c.get("key") not in CUSTOM_KEYS:
             fail(f"badges: {b['id']} の custom key {c.get('key')} は未対応")
+        if c.get("kind") is not None and c["kind"] not in KINDS:
+            fail(f"badges: {b['id']} の kind {c['kind']} は未対応")
         for tid in ([c["task"]] if c.get("task") else []) + list(c.get("tasks") or []):
             if tid not in rids:
                 fail(f"badges: {b['id']} が無いタスク {tid} を参照")
@@ -188,7 +207,9 @@ def main():
         with open(os.path.join(out, "data", name), "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=1, default=str)
             f.write("\n")
-    print(f"built {out}: {len(routines)} routines, {len(tips)} tips, {len(basics)} chapters, {len(badges)} badges")
+    n_steps = sum(len(r.get("steps") or []) for r in routines)
+    n_refill = sum(1 for r in routines if r.get("kind") == "refill")
+    print(f"built {out}: {len(routines)} routines ({n_refill} refill, {n_steps} steps), {len(tips)} tips, {len(basics)} chapters, {len(badges)} badges")
 
 
 if __name__ == "__main__":

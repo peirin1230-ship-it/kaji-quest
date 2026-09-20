@@ -9,6 +9,9 @@
 #   schedule.type: manual → 「後から記録」に並ぶ。quick_minutes の時間チップを 1 タップで記録
 #   slots: [morning, noon, night] → 朝・昼・夜のどの欄に出すか。複数書くと欄ごとに完了を記録できる。
 #           省略時は expr の時刻から自動（4〜10 時=朝 / 11〜16 時=昼 / 17 時以降=夜）
+#   steps: タスクを細かく分けた手順。手順ごとに 1 タップで記録できる（id は全体で一意、est_minutes は手順 1 つ分）。
+#           手順を全部記録すると親タスクも完了扱い。途中まででも「残り完了」で残りをまとめて記録できる。
+#           負荷 W と領域は親から引き継ぐ。
 #   load.physical   1-3  身体的きつさ        (1→+0.0 / 2→+0.1  / 3→+0.2)
 #   load.mental     1-3  段取り・判断の重さ  (1→+0.0 / 2→+0.15 / 3→+0.3)
 #   load.time_bound 0-2  時間帯の縛り        (0→+0.0 / 1→+0.1  / 2→+0.2)
@@ -18,6 +21,7 @@
 #
 # 2026-09-20 記録 6 日分を見て見直し: 風呂掃除とゴミは夜に記録されていたので夜へ。
 # 「名もなき家事」に繰り返し入っていた朝ごはん・夜ご飯・片付けを正式なタスクに。
+# 2026-09-21 全タスクを手順（steps）に細分化。洗剤の補充は routines/refill.yml で洗剤ごとに。
 
 # ---- 朝 ----
 - id: breakfast-cook
@@ -30,6 +34,11 @@
   core: false
   checklist:
     - 主食 + 1 品で十分。子どもの分は取り分け
+  steps:
+    - { id: breakfast-prep, title: 食材と食器を出す, est_minutes: 3 }
+    - { id: breakfast-heat, title: 焼く・温める・盛る, est_minutes: 8 }
+    - { id: breakfast-serve, title: 配膳と子どもの取り分け, est_minutes: 2 }
+    - { id: breakfast-clear, title: 食卓を片付ける, est_minutes: 2 }
   pass_allowed: true
 
 # ---- 朝と夜の両方 ----
@@ -46,6 +55,12 @@
     - シンクの水気を拭く
     - 排水口カゴを洗う
     - 三角コーナーのゴミを捨てる
+  steps:
+    - { id: dishes-plates, title: 食器を洗う（食洗機に入れる）, est_minutes: 6 }
+    - { id: dishes-pots, title: 鍋・フライパンを洗う, est_minutes: 3 }
+    - { id: dishes-dry, title: 水切りから拭いてしまう, est_minutes: 3 }
+    - { id: dishes-sink, title: シンクと排水口カゴを洗う, est_minutes: 2 }
+    - { id: dishes-counter, title: コンロ・調理台を拭く, est_minutes: 1 }
   pass_allowed: true
 
 # ---- 昼 ----
@@ -60,6 +75,10 @@
   checklist:
     - 主菜 1 つと副菜 1 つを決める
     - 足りない食材を買い物リストへ
+  steps:
+    - { id: menu-stock, title: 冷蔵庫の中身を思い出す・写真を見る, est_minutes: 2 }
+    - { id: menu-pick, title: 主菜と副菜を決める, est_minutes: 2 }
+    - { id: menu-list, title: 足りない食材を買い物リストへ, est_minutes: 1 }
   pass_allowed: true
 
 # ---- 夜 ----
@@ -74,6 +93,12 @@
   checklist:
     - 仕込み済みのものがあれば温めるだけ
     - 作りながら使った道具を洗うと、洗い物が半分になる
+  steps:
+    - { id: dinner-rice, title: 米を研いで炊く, est_minutes: 3 }
+    - { id: dinner-cut, title: 食材を切る, est_minutes: 8 }
+    - { id: dinner-heat, title: 加熱・味付け, est_minutes: 12 }
+    - { id: dinner-serve, title: 盛り付け・配膳, est_minutes: 4 }
+    - { id: dinner-clear, title: 食卓の片付け・残りを保存, est_minutes: 3 }
   pass_allowed: true
 
 - id: cooking-prep
@@ -88,6 +113,11 @@
     - 主菜を仕込む
     - 副菜を仕込む
     - 粗熱を取って冷蔵し、日付を書く
+  steps:
+    - { id: prep-veg, title: 野菜を切って保存, est_minutes: 15 }
+    - { id: prep-meat, title: 肉・魚の下味, est_minutes: 10 }
+    - { id: prep-side, title: 作り置きを 1 品, est_minutes: 15 }
+    - { id: prep-store, title: 粗熱を取って冷蔵・日付を書く, est_minutes: 5 }
   pass_allowed: true
 
 - id: laundry-wash
@@ -101,6 +131,10 @@
   checklist:
     - カゴの中身をそのまま洗濯機へ（ネット物は分けてある前提）
     - 洗剤は規定量
+  steps:
+    - { id: laundry-collect, title: 洗濯物を集める（ポケット確認）, est_minutes: 2 }
+    - { id: laundry-net, title: ネット物を分ける, est_minutes: 1 }
+    - { id: laundry-start, title: 洗剤を入れて回す, est_minutes: 2 }
   pass_allowed: true
 
 - id: laundry-hang
@@ -114,6 +148,10 @@
   checklist:
     - 振ってしわを伸ばす
     - 間隔 10cm で干す。部屋干しなら風を当てる
+  steps:
+    - { id: hang-shake, title: 取り出して振ってしわを伸ばす, est_minutes: 2 }
+    - { id: hang-hangers, title: ハンガー・ピンチに掛ける, est_minutes: 6 }
+    - { id: hang-place, title: 干し場へ出す・風を当てる, est_minutes: 2 }
   pass_allowed: true
 
 - id: laundry-fold-store
@@ -128,6 +166,10 @@
     - 乾いたものを取り込む
     - ハンガーのものはそのままクローゼットへ
     - 子ども服は引き出しに放り込む。靴下はペアにしない（同じ種類に統一）
+  steps:
+    - { id: fold-take, title: 取り込む, est_minutes: 3 }
+    - { id: fold-fold, title: たたむ, est_minutes: 8 }
+    - { id: fold-store, title: しまう, est_minutes: 4 }
   pass_allowed: true
 
 - id: bath-clean
@@ -142,12 +184,17 @@
     - 浴槽を洗う
     - 排水口の髪の毛を取る
     - 壁・床を流して水気を切り、換気扇を回す
+  steps:
+    - { id: bath-tub, title: 浴槽を洗う, est_minutes: 4 }
+    - { id: bath-hair, title: 排水口の髪の毛を取る, est_minutes: 2 }
+    - { id: bath-floor, title: 床・壁を流す, est_minutes: 3 }
+    - { id: bath-dry, title: 水気を切って換気扇を回す, est_minutes: 1 }
   pass_allowed: true
 
 - id: garbage
   title: ゴミまとめ（翌朝出す分）
   area: nameless
-  schedule: { type: cron, expr: "0 22 * * *" }   # まとめるのは夜。出すのは朝のついで
+  schedule: { type: cron, expr: "0 22 * * *" }   # まとめるのは夜。出すのは朝のついで（後から記録の「ゴミを出す」）
   slots: [night]
   est_minutes: 5
   load: { physical: 1, mental: 2, time_bound: 2 }   # W=1.35 → 換算 7分
@@ -156,6 +203,11 @@
     - 明日の収集区分を確認する
     - 各部屋のゴミを集めて袋をまとめ、玄関へ
     - 新しい袋をセットする
+  steps:
+    - { id: garbage-check, title: 明日の収集区分を確認, est_minutes: 1 }
+    - { id: garbage-collect, title: 各部屋のゴミを集める, est_minutes: 2 }
+    - { id: garbage-tie, title: 袋をまとめて玄関へ, est_minutes: 1 }
+    - { id: garbage-newbag, title: 新しい袋をセット, est_minutes: 1 }
   pass_allowed: true
 
 # ---- 後から記録（時間帯は記録したときの時刻で自動。詳細で変えられる）----
@@ -182,15 +234,13 @@
     - 床の物をカゴに入れるだけでも 1 回に数える
   pass_allowed: false
 
-- id: detergent-refill
-  title: 洗剤の補充（詰め替え）
+- id: garbage-out
+  title: ゴミを出す（収集日の朝）
   area: nameless
-  schedule: { type: manual }    # 切れたときにやる家事。終わってから 1 タップ
-  est_minutes: 5
-  quick_minutes: [3, 5, 10]
-  load: { physical: 1, mental: 1, time_bound: 0 }   # W=1.00
+  schedule: { type: manual }    # 収集日だけなので毎日の欄には出さない。出したら 1 タップ
+  est_minutes: 2
+  quick_minutes: [2, 5]
+  load: { physical: 1, mental: 1, time_bound: 2 }   # W=1.20
   core: false
-  checklist:
-    - 食器用洗剤・ハンドソープ・シャンプー・洗濯洗剤・詰め替え用のストック
-    - 詰め替えたら、ストックが最後の 1 つなら買い物リストへ
+  checklist: []
   pass_allowed: false
