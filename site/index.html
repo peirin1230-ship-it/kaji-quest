@@ -99,6 +99,17 @@
     <button type="button" class="ghost" id="detail-partial">70点で完了</button>
     <button type="button" class="primary" id="detail-done">完了</button>
   </div>
+  <div class="danger-row">
+    <button type="button" class="ghost tiny danger" id="detail-delete">このタスクを削除…</button>
+    <div class="delete-panel" id="detail-delete-panel" hidden>
+      <p class="help small">ページから消すだけで、これまでの記録は残る。⚙ の「削除したタスク」からいつでも戻せる。</p>
+      <div class="actions left">
+        <button type="button" class="ghost small" id="detail-delete-slot" hidden>この欄からだけ消す</button>
+        <button type="button" class="ghost small danger" id="detail-delete-all">削除（記録は残る）</button>
+        <button type="button" class="ghost small" id="detail-delete-cancel">やめる</button>
+      </div>
+    </div>
+  </div>
 </dialog>
 
 <dialog id="dlg-settings">
@@ -115,6 +126,10 @@
     <button type="button" class="primary" id="settings-save">保存</button>
   </div>
   <p class="help small">トークンはこの端末のブラウザにだけ保存され、GitHub API 以外には送らない。</p>
+  <div class="field">
+    <label class="field-label">削除したタスク（「戻す」でページに戻る。一覧は prefs.json に保存）</label>
+    <ul class="hidden-list" id="hidden-list"></ul>
+  </div>
 </dialog>
 
 <div id="toast" class="toast" hidden></div>

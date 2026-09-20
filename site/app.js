@@ -9,6 +9,7 @@
 
 const API = 'https://api.github.com';
 const TOKEN_KEY = 'kq_token';
+const PREFS_PATH = 'prefs.json';   // 削除（非表示）にしたタスクの一覧。ページが GitHub API で読み書きする
 const TZ = 'Asia/Tokyo';
 const LOAD = { physical: { 1: 0, 2: 0.1, 3: 0.2 }, mental: { 1: 0, 2: 0.15, 3: 0.3 }, time_bound: { 0: 0, 1: 0.1, 2: 0.2 } };
 const DOW_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -26,7 +27,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } } };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -69,7 +70,13 @@ const routineById = id => state.routines.find(r => r.id === id);
 let stepIndexCache = null;
 const stepIndex = () => { if (!stepIndexCache) { stepIndexCache = new Map(); state.routines.forEach(r => (r.steps || []).forEach(st => stepIndexCache.set(st.id, { step: st, parent: r }))); } return stepIndexCache; };
 const stepById = id => stepIndex().get(id);
-const stepsOf = r => (r && Array.isArray(r.steps)) ? r.steps : [];
+// 削除（非表示）: prefs.json の hidden に入れた id は出さない。記録は残る。「id@slot」はその欄だけ、手順の id は手順だけ
+const hiddenKeys = () => (state.prefsFile && state.prefsFile.data && Array.isArray(state.prefsFile.data.hidden)) ? state.prefsFile.data.hidden : [];
+const isHidden = key => hiddenKeys().includes(key);
+const activeRoutines = () => state.routines.filter(r => !isHidden(r.id));
+const stepsOf = r => (r && Array.isArray(r.steps)) ? r.steps.filter(st => !isHidden(st.id)) : [];
+// 見込み。手順を削除していれば、その分を引く
+const estOf = r => { const hid = (r && Array.isArray(r.steps)) ? r.steps.filter(st => isHidden(st.id)) : []; return hid.length ? Math.max(1, Math.round(r.est_minutes - hid.reduce((m, st) => m + (+st.est_minutes || 0), 0))) : +r.est_minutes; };
 function stepTask(id) {
   const x = stepById(id); if (!x) return null; const { step, parent } = x;
   return { id: step.id, title: `${parent.title} › ${step.title}`, area: parent.area, load: parent.load, est_minutes: +step.est_minutes || 1, quick_minutes: [], checklist: [], tips: parent.tips, parent: parent.id, core: false, slots: parent.slots, schedule: { type: 'step' } };
@@ -78,7 +85,7 @@ const taskById = id => routineById(id) || stepTask(id);
 const isRefill = r => !!r && r.kind === 'refill';
 const REFILL_GROUPS = ['台所', '洗濯', '浴室・洗面', 'トイレ', '掃除用', '消耗品'];
 // 記録済みの手順の見込みを引いた「残り」の分
-const restMinutes = (r, doneIds) => Math.max(1, Math.round(r.est_minutes - stepsOf(r).filter(st => doneIds.has(st.id)).reduce((m, st) => m + (+st.est_minutes || 0), 0)));
+const restMinutes = (r, doneIds) => Math.max(1, Math.round(estOf(r) - stepsOf(r).filter(st => doneIds.has(st.id)).reduce((m, st) => m + (+st.est_minutes || 0), 0)));
 function cronDow(field, d) {
   if (!field || field === '*' || field === '?') return true;
   const num = t => { const i = DOW_EN.indexOf(String(t).toUpperCase()); return (i >= 0 ? i : Number(t)) % 7; };
@@ -128,6 +135,7 @@ function ghHeaders(json) {
   return h;
 }
 const contentsUrl = ym => `${API}/repos/${repo().owner}/${repo().name}/contents/logs/${ym}.jsonl`;
+const fileUrl = path => `${API}/repos/${repo().owner}/${repo().name}/contents/${path}`;
 const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
 const b64encode = s => btoa(Array.from(new TextEncoder().encode(s), b => String.fromCharCode(b)).join(''));
 // 分割・改名した古い id を今の id に読み替える（過去の記録を今のタスクに結びつけるため）
@@ -167,6 +175,51 @@ async function mutateMonth(ym, fn, message) {
     return;
   }
   throw new Error('競合が解消できなかった。↻ で更新してもう一度');
+}
+
+// prefs.json（削除したタスクの一覧）。無ければ空。書き込みは sha 競合なら読み直して 1 回だけやり直す
+async function fetchPrefs() {
+  const res = await fetch(`${fileUrl(PREFS_PATH)}?ref=${encodeURIComponent(branch())}`, { headers: ghHeaders(false), cache: 'no-store' });
+  if (res.status === 404) return { sha: null, data: { hidden: [] } };
+  if (!res.ok) throw new Error(`設定ファイルの取得に失敗（${res.status}）`);
+  const j = await res.json(); let data = {};
+  try { data = JSON.parse(j.content ? b64decode(j.content) : '{}') || {}; } catch { data = {}; }
+  if (!Array.isArray(data.hidden)) data.hidden = [];
+  return { sha: j.sha, data };
+}
+async function savePrefs(mutate, message) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const cur = state.prefsFile || { sha: null, data: { hidden: [] } };
+    const data = mutate(JSON.parse(JSON.stringify(cur.data)));
+    const body = { message, content: b64encode(JSON.stringify(data, null, 1) + '\n'), branch: branch() };
+    if (cur.sha) body.sha = cur.sha;
+    const res = await fetch(fileUrl(PREFS_PATH), { method: 'PUT', headers: ghHeaders(true), body: JSON.stringify(body) });
+    if ((res.status === 409 || res.status === 422) && attempt === 0) { state.prefsFile = await fetchPrefs(); continue; }
+    if (res.status === 401 || res.status === 403) throw new Error('トークンが無効か権限不足。Contents: Read and write が必要');
+    if (res.status === 404) throw new Error('書き込めない。トークンの Repository access に kaji-quest が入っているか確認');
+    if (!res.ok) throw new Error(`設定の書き込みに失敗（${res.status}）`);
+    const j = await res.json();
+    state.prefsFile = { sha: (j.content && j.content.sha) || null, data };
+    return;
+  }
+  throw new Error('競合が解消できなかった。↻ で更新してもう一度');
+}
+async function hideTask(key) {
+  if (!requireToken()) return;
+  await run(async () => { await savePrefs(d => { d.hidden = [...new Set([...(d.hidden || []), key])]; return d; }, `prefs: hide ${key} [skip ci]`); }, '削除した。⚙ の「削除したタスク」から戻せる');
+}
+async function unhideTask(key) {
+  if (!requireToken()) return;
+  await run(async () => { await savePrefs(d => { d.hidden = (d.hidden || []).filter(k => k !== key); return d; }, `prefs: show ${key} [skip ci]`); }, '戻した');
+  renderHiddenList();
+}
+function hiddenLabel(key) {
+  const [id, slot] = key.split('@'); const r = taskById(id); const name = r ? r.title : id;
+  return slot ? `${name}（${SLOT_JA[slot] || slot}の欄）` : name;
+}
+function renderHiddenList() {
+  const keys = hiddenKeys(); const box = $('#hidden-list'); if (!box) return;
+  box.innerHTML = keys.length ? keys.map(k => `<li><span class="n">${esc(hiddenLabel(k))}</span><button type="button" class="ghost small" data-act="unhide" data-key="${esc(k)}">戻す</button></li>`).join('') : '<li class="empty">なし</li>';
 }
 
 // ---- 集計（週次目標・ランプ・ストリーク） ----
@@ -332,17 +385,17 @@ function taskRowHTML(r, sid, p) {
     meta = `✓ ${act}分 → 換算 ${Math.round(wm)}分${done.length > 1 ? `（${done.length} 回）` : ''}${done.some(e => e.status === 'partial') ? '（70点）' : ''}${moods ? ' ' + moods : ''}`;
     btns = `<button class="ghost small" data-act="detail" data-slot="${sid}">追加</button><button class="ghost small" data-act="undo" data-entry="${esc(done[done.length - 1].id || '')}">取り消し</button>`;
   } else {
-    const est = partial ? p.rest : r.est_minutes;
-    meta = `${partial ? `残り ${est}分` : `${r.est_minutes}分`} → 換算 ${Math.round(weighted(r, est))}分${tl ? ' ・ ' + tl : ''}`;
+    const est = partial ? p.rest : estOf(r);
+    meta = `${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分${tl ? ' ・ ' + tl : ''}`;
     btns = `<button class="ghost small" data-act="detail" data-slot="${sid}" data-min="${est}">詳細</button><button class="primary" data-act="done" data-slot="${sid}" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
   }
   return `<li class="task${p.complete ? ' is-done' : ''}" data-id="${esc(r.id)}" data-slot="${sid}"><div class="main"><div class="title">${esc(r.title)}${r.core ? ' <span class="badge core">core</span>' : ''}</div><div class="meta">${meta}${sb.toggle}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
 }
 function tasksHTML(date, todays, entries) {
-  const due = state.routines.filter(r => dueToday(r, date));
-  const pairs = []; due.forEach(r => slotsOf(r).forEach(sid => pairs.push({ r, sid, p: doneParts(r, sid, todays) })));
+  const due = activeRoutines().filter(r => dueToday(r, date));
+  const pairs = []; due.forEach(r => slotsOf(r).filter(sid => !isHidden(`${r.id}@${sid}`)).forEach(sid => pairs.push({ r, sid, p: doneParts(r, sid, todays) })));
   const remaining = pairs.filter(x => !x.p.complete);
-  const est = remaining.reduce((sum, x) => sum + Math.round(weighted(x.r, x.p.doneIds.size ? x.p.rest : x.r.est_minutes)), 0);
+  const est = remaining.reduce((sum, x) => sum + Math.round(weighted(x.r, x.p.doneIds.size ? x.p.rest : estOf(x.r))), 0);
   const perWeek = +(state.config.pass && state.config.pass.per_week) || 0;
   const ws = mondayOf(date); const passUsed = entries.filter(e => e.status === 'passed' && e.date >= ws && e.date <= addDays(ws, 6)).length;
   const passedToday = todays.some(e => e.status === 'passed');
@@ -370,7 +423,7 @@ function menuItems(date, entries) {
       if (stepsOf(r).length && stepsOf(r).every(st => m.has(st.id))) { last[r.id] = e.date; m.clear(); }
     } else if (!last[e.task_id] || e.date > last[e.task_id]) { last[e.task_id] = e.date; if (prog[e.task_id]) prog[e.task_id].clear(); }
   });
-  return state.routines.filter(isMenu).map(r => {
+  return activeRoutines().filter(isMenu).map(r => {
     const days = Math.max(1, +r.schedule.days || 7); const ld = last[r.id]; const since = ld ? daysBetween(ld, date) : null;
     const doneMap = {}; for (const [k, v] of (prog[r.id] || new Map())) if (daysBetween(v.date, date) <= days) doneMap[k] = [v];
     return { r, days, since, score: since === null ? 1.5 : since / days, doneMap, doneIds: new Set(Object.keys(doneMap)) };
@@ -382,8 +435,8 @@ function menuRowHTML(i, big) {
   const when = since === null ? '前回 まだ' : done ? 'この日やった' : `前回 ${since}日前`;
   const badge = done ? '' : big ? '<span class="badge big">大物</span>' : score >= 1 ? '<span class="badge due">そろそろ</span>' : '';
   const later = !done && score < 1 && since !== null ? ` ・ あと ${Math.max(1, Math.ceil(days - since))} 日` : '';
-  const est = partial ? restMinutes(r, doneIds) : r.est_minutes;
-  const meta = `${partial ? `残り ${est}分` : `${r.est_minutes}分`} → 換算 ${Math.round(weighted(r, est))}分 ・ 目安 ${days}日ごと ・ ${when}${later}${sb.toggle}`;
+  const est = partial ? restMinutes(r, doneIds) : estOf(r);
+  const meta = `${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分 ・ 目安 ${days}日ごと ・ ${when}${later}${sb.toggle}`;
   const btns = done ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : `<button class="ghost small" data-act="detail" data-min="${est}">詳細</button><button class="primary" data-act="done" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
   return `<li class="task${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
 }
@@ -470,7 +523,7 @@ function openChapter(id, scroll) {
   if (scroll) { const el = document.getElementById('ch-' + id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
 }
 function quickHTML(todays) {
-  const manual = state.routines.filter(r => r.schedule && r.schedule.type === 'manual' && !isRefill(r));
+  const manual = activeRoutines().filter(r => r.schedule && r.schedule.type === 'manual' && !isRefill(r));
   if (!manual.length) return '';
   const rows = manual.map(r => {
     const done = todays.filter(e => e.task_id === r.id && EARNED.has(e.status));
@@ -485,7 +538,7 @@ function quickHTML(todays) {
 function refillItems(date, entries) {
   const dates = {};
   entries.forEach(e => { if (EARNED.has(e.status)) (dates[e.task_id] || (dates[e.task_id] = new Set())).add(e.date); });
-  return state.routines.filter(isRefill).map(r => {
+  return activeRoutines().filter(isRefill).map(r => {
     const ds = [...(dates[r.id] || [])].sort(); const n = ds.length; const last = n ? ds[n - 1] : null;
     const avg = n >= 2 ? Math.max(1, Math.round(daysBetween(ds[0], last) / (n - 1))) : 0;
     const days = avg || +r.interval_days || 30;
@@ -542,7 +595,7 @@ function renderSearch(date, todays, entries) {
   const q = norm(state.q).trim(); const box = $('#search-results');
   if (!q) { box.innerHTML = ''; return; }
   const terms = q.split(/\s+/).filter(Boolean); const hit = s => { const n = norm(s); return terms.every(t => n.includes(t)); };
-  const routines = state.routines.filter(r => hit([r.title, r.id, r.place, r.group, AREA_JA[r.area], ...(r.checklist || []), ...stepsOf(r).map(st => st.title)].join(' '))).slice(0, 12);
+  const routines = activeRoutines().filter(r => hit([r.title, r.id, r.place, r.group, AREA_JA[r.area], ...(r.checklist || []), ...stepsOf(r).map(st => st.title)].join(' '))).slice(0, 12);
   const tips = state.tips.filter(t => hit([t.title, t.body, t.action, t.topic, ...(t.tags || [])].join(' '))).slice(0, 10);
   const logs = entries.filter(e => hit([e.title, e.learned, e.task_id].join(' '))).slice(-8).reverse();
   const chapters = state.basics.filter(c => hit([c.title, c.summary, c.text].join(' ')));
@@ -674,7 +727,7 @@ function customMeasure(c, st, day, gte) {
     case 'early': return { v: st.early, t: gte };
     case 'core_streak': return { v: st.coreStreakBest, t: gte };
     case 'resume': return { v: st.resume, t: gte };
-    case 'all_places': { const places = [...new Set(state.routines.filter(isMenu).map(r => r.place || 'その他'))]; const within = +c.days || 30;
+    case 'all_places': { const places = [...new Set(activeRoutines().filter(isMenu).map(r => r.place || 'その他'))]; const within = +c.days || 30;
       return { v: places.filter(p => st.placeLast[p] && daysBetween(st.placeLast[p], day) <= within).length, t: places.length }; }
     case 'everyday_weeks': { let v = 0; const cur = weekNoOf(day); for (let w = 1; w < cur; w++) { const a = weekStartOf(w); if (addDays(a, 6) >= day) break; if ([...Array(7)].every((_, i) => st.days.has(addDays(a, i)))) v++; } return { v, t: gte }; }
     case 'tip_stage': return { v: Object.values(st.tipStage).filter(t => t.stage >= TIP_INTERVALS.length - 1).length, t: gte };
@@ -838,14 +891,20 @@ $('#app').addEventListener('click', ev => {
 });
 
 // 詳細ダイアログ（時間・時間帯・気分・気づき・コツ・70点完了）
-let detailRoutine = null, detailMood = 0, detailMin = 0, detailTip = null, detailSlot = 'night';
+let detailRoutine = null, detailMood = 0, detailMin = 0, detailTip = null, detailSlot = 'night', detailFromSlot = '';
 function openDetail(r, slot, min) {
-  detailRoutine = r; detailMood = 0; detailMin = +min || +r.est_minutes || 0; detailSlot = SLOT_JA[slot] ? slot : currentSlot();
+  detailRoutine = r; detailMood = 0; detailMin = +min || estOf(r) || 0; detailSlot = SLOT_JA[slot] ? slot : currentSlot(); detailFromSlot = SLOT_JA[slot] ? slot : '';
+  // 削除（非表示）。朝と夜の両方に出るタスクは、開いた欄だけ消す選択肢も出す
+  const kindLabel = r.parent ? 'この手順' : isMenu(r) ? 'このメニュー' : isRefill(r) ? 'この項目' : 'このタスク';
+  $('#detail-delete').textContent = `${kindLabel}を削除…`; $('#detail-delete-panel').hidden = true;
+  const multiSlot = !r.parent && !!detailFromSlot && slotsOf(r).filter(sid => !isHidden(`${r.id}@${sid}`)).length >= 2;
+  $('#detail-delete-slot').hidden = !multiSlot; if (multiSlot) $('#detail-delete-slot').textContent = `${SLOT_JA[detailFromSlot]}の欄からだけ消す`;
+  $('#detail-delete-all').textContent = `${kindLabel}を削除（記録は残る）`;
   detailTip = tipForRoutine(r, tipStats(allEntries()));
   $('#detail-tip-wrap').hidden = !detailTip;
   if (detailTip) { $('#detail-tip').innerHTML = tipBoxHTML(detailTip); $('#detail-tip-practiced').checked = false; }
   $('#detail-title').textContent = r.title; $('#detail-w').textContent = `W=${weightOf(r).toFixed(2)}${isToday() ? '' : ` ・ ${jaDate(viewDate())} に記録`}`;
-  const opts = [...new Set([detailMin, +r.est_minutes, ...(r.quick_minutes || []).map(Number), 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120].filter(n => n > 0))].sort((a, b) => a - b);
+  const opts = [...new Set([detailMin, estOf(r), ...(r.quick_minutes || []).map(Number), 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120].filter(n => n > 0))].sort((a, b) => a - b);
   $('#detail-minutes').innerHTML = opts.map(m => `<button type="button" class="chip${m === detailMin ? ' is-on' : ''}" data-min="${m}">${m}分</button>`).join('');
   $('#detail-slot').innerHTML = SLOTS.map(s => `<button type="button" class="chip${s.id === detailSlot ? ' is-on' : ''}" data-slot="${s.id}">${s.ja}</button>`).join('');
   $('#detail-mood').innerHTML = MOODS.map((m, i) => `<button type="button" class="chip" data-mood="${i + 1}">${m}</button>`).join('');
@@ -861,6 +920,12 @@ $('#dlg-detail').addEventListener('click', ev => {
   if (b.dataset.slot) { detailSlot = b.dataset.slot; [...$('#detail-slot').children].forEach(c => c.classList.toggle('is-on', c === b)); }
   if (b.dataset.mood) { const v = +b.dataset.mood; detailMood = detailMood === v ? 0 : v; [...$('#detail-mood').children].forEach(c => c.classList.toggle('is-on', +c.dataset.mood === detailMood)); }
   if (b.id === 'detail-cancel') $('#dlg-detail').close();
+  if (b.id === 'detail-delete') { const p = $('#detail-delete-panel'); p.hidden = !p.hidden; }
+  if (b.id === 'detail-delete-cancel') $('#detail-delete-panel').hidden = true;
+  if (b.id === 'detail-delete-slot' || b.id === 'detail-delete-all') {
+    const key = b.id === 'detail-delete-slot' ? `${detailRoutine.id}@${detailFromSlot}` : detailRoutine.id;
+    $('#dlg-detail').close(); hideTask(key);
+  }
   if (b.id === 'detail-done' || b.id === 'detail-partial') {
     const custom = parseInt($('#detail-custom').value, 10); const minutes = custom > 0 ? custom : detailMin;
     if (!(minutes > 0)) { toast('時間を選ぶ', true); return; }
@@ -874,8 +939,10 @@ $('#dlg-detail').addEventListener('click', ev => {
 // 設定（トークン）
 function openSettings() {
   $('#token').value = state.token; $('#settings-status').textContent = state.token ? '保存済み（この端末のみ）' : '未設定';
+  renderHiddenList();
   $('#dlg-settings').showModal();
 }
+$('#hidden-list').addEventListener('click', ev => { const b = ev.target.closest('button[data-act="unhide"]'); if (b && !state.busy) unhideTask(b.dataset.key); });
 $('#btn-settings').addEventListener('click', openSettings);
 $('#settings-close').addEventListener('click', () => $('#dlg-settings').close());
 $('#settings-save').addEventListener('click', () => {
@@ -909,7 +976,9 @@ async function reload() {
   await run(async () => {
     state.months.clear();
     const today = nowParts().date; const a = addDays(startMonday(), -7), b = addDays(today, -366);
+    const pf = fetchPrefs().catch(() => state.prefsFile || { sha: null, data: { hidden: [] } });   // 読めなくても動く（書くときに読み直す）
     await ensureMonths(a > b ? a : b, today);
+    state.prefsFile = await pf;
     if (state.viewDate) await ensureMonths(addDays(mondayOf(state.viewDate), -7), state.viewDate);
     state.streak = await computeStreak(today); state.loaded = true;
   });
