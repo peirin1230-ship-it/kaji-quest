@@ -197,3 +197,17 @@ h3.group.slot { font-size: 15px; color: var(--text); margin: 12px 0 2px; }
 .step .primary.tiny { min-height: 36px; padding: 0 12px; font-size: 13.5px; border-radius: 10px; }
 .steps-toggle { background: none; border: 0; color: var(--primary); font-size: 12.5px; font-weight: 600; padding: 0 4px; margin-left: 4px; min-height: 0; }
 .task.is-done .steps-toggle { color: var(--primary); }
+
+/* ページ内ナビ（上に固定）と、カードの折りたたみ */
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; display: flex; gap: 6px; overflow-x: auto; padding: 6px 12px 8px; margin: 0 auto; max-width: 560px; background: var(--bg); scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.nav::-webkit-scrollbar { display: none; }
+.nav-chip { flex: 0 0 auto; background: var(--card); border: 1px solid var(--line); border-radius: 999px; min-height: 38px; padding: 0 13px; font-size: 13.5px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.nav-chip.is-active { background: var(--chip-on); border-color: var(--primary); color: var(--primary); }
+.nav-date { color: var(--text); }
+.nav-date.is-past { color: var(--accent); border-color: var(--accent); }
+.card, h3.group.slot { scroll-margin-top: 60px; }
+.card { position: relative; }
+.card > h2 { padding-right: 34px; }
+.collapse { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; border: 0; background: none; color: var(--muted); font-size: 15px; border-radius: 10px; }
+.card.is-collapsed > :not(h2) { display: none; }
+.card.is-collapsed > h2 { margin-bottom: 0; }

@@ -226,6 +226,7 @@ function render() {
   $('#today-log').innerHTML = logHTML(date, todays);
   renderSearch(date, todays, entries);
   document.body.classList.toggle('busy', state.busy);
+  decorateCards(); updateNav();
 }
 function renderHeader(today, date) {
   $('#date-input').value = date; $('#date-input').max = today;
@@ -233,7 +234,56 @@ function renderHeader(today, date) {
   $('#btn-today').hidden = date === today;
   $('#btn-date-next').disabled = date >= today;
   $('#streak').textContent = `🔥 ${state.streak}日`;
+  const nd = $('#nav-date'); nd.textContent = jaDate(date); nd.classList.toggle('is-past', date !== today);
 }
+// ---- ページ内ナビ（上に固定のチップ）と、カードの折りたたみ（この端末に記憶） ----
+const NAV_IDS = ['slot-morning', 'slot-noon', 'slot-night', 'menu', 'tip', 'basics', 'quick', 'refill', 'week', 'achievements', 'today-log'];
+const COLLAPSE_KEY = 'kq_collapsed';
+let collapsed = new Set(); try { collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')); } catch { collapsed = new Set(); }
+const visible = el => !!el && el.offsetParent !== null;
+function setCollapsed(id, on) {
+  if (on) collapsed.add(id); else collapsed.delete(id);
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])); } catch { /* 保存できなくても動く */ }
+  const sec = document.getElementById(id); if (!sec) return;
+  sec.classList.toggle('is-collapsed', on);
+  const b = sec.querySelector(':scope > h2 > .collapse'); if (b) { b.textContent = on ? '▸' : '▾'; b.setAttribute('aria-expanded', on ? 'false' : 'true'); b.setAttribute('aria-label', on ? '開く' : 'たたむ'); }
+  updateNav();
+}
+// 各カードの見出しに折りたたみボタンを付け、記憶した状態を当てる（描画のたびに呼ぶ）
+function decorateCards() {
+  document.querySelectorAll('#app > .card').forEach(sec => {
+    const h = sec.querySelector(':scope > h2'); if (!h) return;
+    const on = collapsed.has(sec.id);
+    if (!h.querySelector('.collapse')) h.insertAdjacentHTML('beforeend', `<button class="collapse" data-act="collapse-toggle" data-card="${esc(sec.id)}"></button>`);
+    const b = h.querySelector('.collapse'); b.textContent = on ? '▸' : '▾'; b.setAttribute('aria-expanded', on ? 'false' : 'true'); b.setAttribute('aria-label', on ? '開く' : 'たたむ');
+    sec.classList.toggle('is-collapsed', on);
+  });
+}
+// 見出しへ飛ぶ。飛び先が無い（その日にその欄が無い）ときは fallback のカードへ。たたんであれば開く
+function goTo(id, fallback) {
+  if (id === 'top') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+  let el = document.getElementById(id); if (!visible(el)) el = fallback ? document.getElementById(fallback) : null; if (!visible(el)) return;
+  const card = el.closest('.card') || el; if (card.classList.contains('is-collapsed')) setCollapsed(card.id, false);
+  navHold = Date.now() + 900;   // スクロール中は押したチップを保つ（途中の見出しでチラつかない）
+  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  markNav(id);
+}
+let navHold = 0;
+function markNav(id) {
+  document.querySelectorAll('#nav .nav-chip').forEach(c => c.classList.toggle('is-active', c.dataset.go === id));
+  const c = document.querySelector('#nav .nav-chip.is-active'); if (c) c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+// 今どの見出しを見ているかをナビに映す（見出しがナビの下端より上にある最後のもの）
+function updateNav() {
+  const nav = $('#nav'); if (!nav || Date.now() < navHold) return; const limit = nav.getBoundingClientRect().bottom + 20; let active = '';   // scroll-margin-top（60px）で止まった見出しが「見ている」に入るよう少し余裕を取る
+  const shown = NAV_IDS.filter(id => visible(document.getElementById(id)));
+  shown.forEach(id => { if (document.getElementById(id).getBoundingClientRect().top <= limit) active = id; });
+  if (shown.length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = shown[shown.length - 1];   // 一番下まで来たら最後の見出し
+  document.querySelectorAll('#nav .nav-chip').forEach(c => c.classList.toggle('is-active', c.dataset.go === active));
+}
+let navTick = false;
+window.addEventListener('scroll', () => { if (navTick) return; navTick = true; requestAnimationFrame(() => { navTick = false; updateNav(); }); }, { passive: true });
+$('#nav').addEventListener('click', ev => { const b = ev.target.closest('[data-go]'); if (b) goTo(b.dataset.go, b.dataset.fallback); });
 function progressHTML(today, date, entries) {
   const t = targetInfo(date, entries); const ws = mondayOf(date), we = addDays(ws, 6);
   const got = Math.round(sumWeighted(entries, ws, we)); const last = Math.round(sumWeighted(entries, addDays(ws, -7), addDays(ws, -1)));
@@ -299,7 +349,7 @@ function tasksHTML(date, todays, entries) {
   const sections = SLOTS.map(sl => {
     const items = pairs.filter(x => x.sid === sl.id); if (!items.length) return '';
     const left = items.filter(x => !x.p.complete).length;
-    return `<h3 class="group slot">${sl.ja} <span class="sub">${left ? `残り ${left} 件` : '全部完了'}</span></h3><ul class="tasks">${items.map(x => taskRowHTML(x.r, x.sid, x.p)).join('')}</ul>`;
+    return `<h3 class="group slot" id="slot-${sl.id}">${sl.ja} <span class="sub">${left ? `残り ${left} 件` : '全部完了'}</span></h3><ul class="tasks">${items.map(x => taskRowHTML(x.r, x.sid, x.p)).join('')}</ul>`;
   }).join('');
   const head = remaining.length ? `残り ${remaining.length} 件 ・ 見込み ${est} 換算分` : (pairs.length ? '全部完了 🎉' : '');
   const pass = passedToday
@@ -774,6 +824,7 @@ $('#app').addEventListener('click', ev => {
     case 'detail': if (r) openDetail(r, b.dataset.slot, +b.dataset.min || 0); break;
     case 'steps-toggle': state.openSteps.set(b.dataset.key, b.getAttribute('aria-expanded') !== 'true'); render(); break;
     case 'refill-toggle': state.showRefill = !state.showRefill; render(); break;
+    case 'collapse-toggle': setCollapsed(b.dataset.card, !collapsed.has(b.dataset.card)); break;
     case 'undo': undo(b.dataset.entry); break;
     case 'pass': recordPass(); break;
     case 'menu-toggle': state.showMenu = !state.showMenu; render(); break;
