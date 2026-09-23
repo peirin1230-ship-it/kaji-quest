@@ -74,11 +74,11 @@
   core: false
   checklist:
     - 主菜 1 つと副菜 1 つを決める
-    - 足りない食材を買い物リストへ
+    - 足りない食材を買い物メモへ
   steps:
     - { id: menu-stock, title: 冷蔵庫の中身を思い出す・写真を見る, est_minutes: 2 }
     - { id: menu-pick, title: 主菜と副菜を決める, est_minutes: 2 }
-    - { id: menu-list, title: 足りない食材を買い物リストへ, est_minutes: 1 }
+    - { id: menu-list, title: 足りない食材を買い物メモへ, est_minutes: 1 }
   pass_allowed: true
 
 # ---- 夜 ----

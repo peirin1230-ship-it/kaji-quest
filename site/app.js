@@ -10,6 +10,7 @@
 const API = 'https://api.github.com';
 const TOKEN_KEY = 'kq_token';
 const PREFS_PATH = 'prefs.json';   // 削除（非表示）にしたタスクの一覧。ページが GitHub API で読み書きする
+const SHOP_PATH = 'shopping.json';  // 買い物メモ。同じくページが読み書きする
 const TZ = 'Asia/Tokyo';
 const LOAD = { physical: { 1: 0, 2: 0.1, 3: 0.2 }, mental: { 1: 0, 2: 0.15, 3: 0.3 }, time_bound: { 0: 0, 1: 0.1, 2: 0.2 } };
 const DOW_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -27,7 +28,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } } };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } }, shopFile: { sha: null, data: { items: [], recent: [] } }, shopDraft: '', shopFocus: false };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -177,33 +178,41 @@ async function mutateMonth(ym, fn, message) {
   throw new Error('競合が解消できなかった。↻ で更新してもう一度');
 }
 
-// prefs.json（削除したタスクの一覧）。無ければ空。書き込みは sha 競合なら読み直して 1 回だけやり直す
-async function fetchPrefs() {
-  const res = await fetch(`${fileUrl(PREFS_PATH)}?ref=${encodeURIComponent(branch())}`, { headers: ghHeaders(false), cache: 'no-store' });
-  if (res.status === 404) return { sha: null, data: { hidden: [] } };
-  if (!res.ok) throw new Error(`設定ファイルの取得に失敗（${res.status}）`);
+// リポジトリ直下の JSON ファイル（prefs.json = 削除したタスク、shopping.json = 買い物メモ）を GitHub API で読み書きする。
+// 無ければ既定値。書き込みは sha 競合なら読み直して 1 回だけやり直す
+const JSON_FILES = {
+  prefsFile: { path: PREFS_PATH, normalize: d => ({ ...d, hidden: Array.isArray(d.hidden) ? d.hidden : [] }) },
+  shopFile: { path: SHOP_PATH, normalize: d => ({ ...d, items: Array.isArray(d.items) ? d.items.filter(i => i && i.id && i.text) : [], recent: Array.isArray(d.recent) ? d.recent.filter(t => typeof t === 'string') : [] }) },
+};
+async function fetchJsonFile(key) {
+  const { path, normalize } = JSON_FILES[key];
+  const res = await fetch(`${fileUrl(path)}?ref=${encodeURIComponent(branch())}`, { headers: ghHeaders(false), cache: 'no-store' });
+  if (res.status === 404) return { sha: null, data: normalize({}) };
+  if (!res.ok) throw new Error(`${path} の取得に失敗（${res.status}）`);
   const j = await res.json(); let data = {};
   try { data = JSON.parse(j.content ? b64decode(j.content) : '{}') || {}; } catch { data = {}; }
-  if (!Array.isArray(data.hidden)) data.hidden = [];
-  return { sha: j.sha, data };
+  return { sha: j.sha, data: normalize(data) };
 }
-async function savePrefs(mutate, message) {
+async function saveJsonFile(key, mutate, message) {
+  const { path, normalize } = JSON_FILES[key];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const cur = state.prefsFile || { sha: null, data: { hidden: [] } };
-    const data = mutate(JSON.parse(JSON.stringify(cur.data)));
+    const cur = state[key] || { sha: null, data: normalize({}) };
+    const data = normalize(mutate(JSON.parse(JSON.stringify(cur.data))) || cur.data);
     const body = { message, content: b64encode(JSON.stringify(data, null, 1) + '\n'), branch: branch() };
     if (cur.sha) body.sha = cur.sha;
-    const res = await fetch(fileUrl(PREFS_PATH), { method: 'PUT', headers: ghHeaders(true), body: JSON.stringify(body) });
-    if ((res.status === 409 || res.status === 422) && attempt === 0) { state.prefsFile = await fetchPrefs(); continue; }
+    const res = await fetch(fileUrl(path), { method: 'PUT', headers: ghHeaders(true), body: JSON.stringify(body) });
+    if ((res.status === 409 || res.status === 422) && attempt === 0) { state[key] = await fetchJsonFile(key); continue; }
     if (res.status === 401 || res.status === 403) throw new Error('トークンが無効か権限不足。Contents: Read and write が必要');
     if (res.status === 404) throw new Error('書き込めない。トークンの Repository access に kaji-quest が入っているか確認');
-    if (!res.ok) throw new Error(`設定の書き込みに失敗（${res.status}）`);
+    if (!res.ok) throw new Error(`${path} の書き込みに失敗（${res.status}）`);
     const j = await res.json();
-    state.prefsFile = { sha: (j.content && j.content.sha) || null, data };
+    state[key] = { sha: (j.content && j.content.sha) || null, data };
     return;
   }
   throw new Error('競合が解消できなかった。↻ で更新してもう一度');
 }
+const fetchPrefs = () => fetchJsonFile('prefsFile');
+const savePrefs = (mutate, message) => saveJsonFile('prefsFile', mutate, message);
 async function hideTask(key) {
   if (!requireToken()) return;
   await run(async () => { await savePrefs(d => { d.hidden = [...new Set([...(d.hidden || []), key])]; return d; }, `prefs: hide ${key} [skip ci]`); }, '削除した。⚙ の「削除したタスク」から戻せる');
@@ -220,6 +229,55 @@ function hiddenLabel(key) {
 function renderHiddenList() {
   const keys = hiddenKeys(); const box = $('#hidden-list'); if (!box) return;
   box.innerHTML = keys.length ? keys.map(k => `<li><span class="n">${esc(hiddenLabel(k))}</span><button type="button" class="ghost small" data-act="unhide" data-key="${esc(k)}">戻す</button></li>`).join('') : '<li class="empty">なし</li>';
+}
+
+// ---- 買い物メモ（shopping.json）。追加順に並び、買ったものは下へ。「よく買う」は足した名前の履歴 ----
+const shopItems = () => (state.shopFile && state.shopFile.data && state.shopFile.data.items) || [];
+const shopRecent = () => (state.shopFile && state.shopFile.data && state.shopFile.data.recent) || [];
+const splitShopText = s => String(s || '').split(/[、,，\n]+/).map(t => t.trim()).filter(Boolean);
+// 補充の項目から買う物の名前（buy: があればそれ。無ければ「〜の詰め替え」などを外す）
+const shopNameOf = r => r.buy || String(r.title).replace(/（[^）]*）/g, '').replace(/(の詰め替え|の補充|の交換|の替えを補充)$/, '').replace(/を作る$/, '').trim();
+async function shopAdd(text) {
+  const list = [...new Set(splitShopText(text))].map(t => t.slice(0, 40));
+  if (!list.length || !requireToken()) return;
+  state.shopDraft = ''; state.shopFocus = true;
+  await run(async () => {
+    await saveJsonFile('shopFile', d => {
+      list.forEach(t => { const dup = d.items.find(i => i.text === t); if (dup) dup.done = false; else d.items.push({ id: uid(), text: t, added: nowParts().date }); });
+      d.recent = [...list, ...d.recent.filter(t => !list.includes(t))].slice(0, 40);
+      return d;
+    }, `shop: add ${list.join('、')} [skip ci]`);
+  });
+}
+async function shopToggle(id) {
+  if (!requireToken()) return;
+  await run(async () => { await saveJsonFile('shopFile', d => { const it = d.items.find(i => i.id === id); if (it) it.done = !it.done; return d; }, `shop: toggle ${id} [skip ci]`); });
+}
+async function shopRemove(id) {
+  if (!requireToken()) return;
+  await run(async () => { await saveJsonFile('shopFile', d => { d.items = d.items.filter(i => i.id !== id); return d; }, `shop: remove ${id} [skip ci]`); });
+}
+async function shopClearDone() {
+  if (!requireToken()) return;
+  await run(async () => { await saveJsonFile('shopFile', d => { d.items = d.items.filter(i => !i.done); return d; }, 'shop: clear bought [skip ci]'); }, '買った分を消した');
+}
+async function shopShare() {
+  const open = shopItems().filter(i => !i.done); if (!open.length) { toast('メモは空', true); return; }
+  const text = `買い物メモ ${jaDate(nowParts().date)}\n${open.map(i => '・' + i.text).join('\n')}`;
+  try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+  try { await navigator.clipboard.writeText(text); toast('コピーした'); } catch { window.prompt('コピーして使う', text); }
+}
+function shoppingHTML() {
+  const items = shopItems(); const open = items.filter(i => !i.done), done = items.filter(i => i.done);
+  const inList = new Set(items.map(i => i.text));
+  const chips = shopRecent().filter(t => !inList.has(t)).slice(0, 12).map(t => `<button class="chip" data-act="shop-add" data-text="${esc(t)}">${esc(t)}</button>`).join('');
+  const row = i => `<li class="shop-item${i.done ? ' is-done' : ''}" data-sid="${esc(i.id)}"><button class="tick" data-act="shop-toggle" aria-label="${i.done ? '戻す' : '買った'}">${i.done ? '✓' : ''}</button><button class="shop-name" data-act="shop-toggle">${esc(i.text)}</button><button class="ghost tiny" data-act="shop-remove" aria-label="消す">×</button></li>`;
+  return `<h2>買い物メモ <span class="sub">${open.length ? `${open.length} 件` : '空'} ・ タップで買った</span></h2>
+    <div class="shop-add"><input type="text" id="shop-input" placeholder="牛乳、卵（「、」で区切ると複数）" value="${esc(state.shopDraft)}" maxlength="120" autocomplete="off" enterkeyhint="done"><button class="primary" data-act="shop-add-input">追加</button></div>
+    ${chips ? `<div class="chips shop-chips">${chips}</div>` : ''}
+    ${open.length ? `<ul class="shop">${open.map(row).join('')}</ul>` : '<p class="empty">まだ何もない。補充の 🛒 からも足せる</p>'}
+    ${done.length ? `<h3 class="group">買った <span class="sub">${done.length}</span></h3><ul class="shop">${done.map(row).join('')}</ul>` : ''}
+    <div class="actions left"><button class="ghost small" data-act="shop-share">共有・コピー</button>${done.length ? '<button class="ghost small" data-act="shop-clear">買った分を消す</button>' : ''}</div>`;
 }
 
 // ---- 集計（週次目標・ランプ・ストリーク） ----
@@ -274,12 +332,14 @@ function render() {
   $('#basics').innerHTML = basicsHTML();
   $('#quick').innerHTML = quickHTML(todays);
   $('#refill').innerHTML = refillHTML(date, entries);
+  $('#shopping').innerHTML = shoppingHTML();
   $('#week').innerHTML = weekHTML(today, date, entries);
   $('#achievements').innerHTML = achievementsHTML(today, date, entries, all);
   $('#today-log').innerHTML = logHTML(date, todays);
   renderSearch(date, todays, entries);
   document.body.classList.toggle('busy', state.busy);
   decorateCards(); updateNav();
+  if (state.shopFocus && !state.busy) { state.shopFocus = false; const inp = $('#shop-input'); if (inp) inp.focus({ preventScroll: true }); }
 }
 function renderHeader(today, date) {
   $('#date-input').value = date; $('#date-input').max = today;
@@ -290,7 +350,7 @@ function renderHeader(today, date) {
   const nd = $('#nav-date'); nd.textContent = jaDate(date); nd.classList.toggle('is-past', date !== today);
 }
 // ---- ページ内ナビ（上に固定のチップ）と、カードの折りたたみ（この端末に記憶） ----
-const NAV_IDS = ['slot-morning', 'slot-noon', 'slot-night', 'menu', 'tip', 'basics', 'quick', 'refill', 'week', 'achievements', 'today-log'];
+const NAV_IDS = ['slot-morning', 'slot-noon', 'slot-night', 'menu', 'tip', 'basics', 'quick', 'refill', 'shopping', 'week', 'achievements', 'today-log'];
 const COLLAPSE_KEY = 'kq_collapsed';
 let collapsed = new Set(); try { collapsed = new Set(JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]')); } catch { collapsed = new Set(); }
 const visible = el => !!el && el.offsetParent !== null;
@@ -553,7 +613,8 @@ function refillRowHTML(i) {
   const later = !today && next !== null && next > 3 ? ` ・ あと ${next} 日` : '';
   const badge = today ? '' : due ? '<span class="badge due">そろそろ</span>' : '';
   const meta = `${when} ・ ${cyc}${later}${n ? ` ・ ${n} 回` : ''}`;
-  const btns = today ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : `<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done" data-min="${+r.est_minutes || 3}">補充した</button>`;
+  const cart = `<button class="ghost tiny" data-act="shop-add" data-text="${esc(shopNameOf(r))}" aria-label="買い物メモへ" title="買い物メモへ">🛒</button>`;
+  const btns = today ? `${cart}<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>` : `${cart}<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done" data-min="${+r.est_minutes || 3}">補充した</button>`;
   return `<li class="task${today ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
 }
 function refillHTML(date, entries) {
@@ -878,6 +939,12 @@ $('#app').addEventListener('click', ev => {
     case 'steps-toggle': state.openSteps.set(b.dataset.key, b.getAttribute('aria-expanded') !== 'true'); render(); break;
     case 'refill-toggle': state.showRefill = !state.showRefill; render(); break;
     case 'collapse-toggle': setCollapsed(b.dataset.card, !collapsed.has(b.dataset.card)); break;
+    case 'shop-add': shopAdd(b.dataset.text); break;
+    case 'shop-add-input': shopAdd($('#shop-input').value); break;
+    case 'shop-toggle': { const li = b.closest('[data-sid]'); if (li) shopToggle(li.dataset.sid); break; }
+    case 'shop-remove': { const li = b.closest('[data-sid]'); if (li) shopRemove(li.dataset.sid); break; }
+    case 'shop-clear': shopClearDone(); break;
+    case 'shop-share': shopShare(); break;
     case 'undo': undo(b.dataset.entry); break;
     case 'pass': recordPass(); break;
     case 'menu-toggle': state.showMenu = !state.showMenu; render(); break;
@@ -966,6 +1033,8 @@ $('#btn-date-prev').addEventListener('click', () => { if (!state.busy) setDate(a
 $('#btn-date-next').addEventListener('click', () => { if (!state.busy) setDate(addDays(viewDate(), 1)); });
 $('#btn-today').addEventListener('click', () => { if (!state.busy) setDate(''); });
 $('#date-input').addEventListener('change', ev => { if (ev.target.value && !state.busy) setDate(ev.target.value); });
+$('#app').addEventListener('input', ev => { if (ev.target.id === 'shop-input') state.shopDraft = ev.target.value; });
+$('#app').addEventListener('keydown', ev => { if (ev.target.id === 'shop-input' && ev.key === 'Enter') { ev.preventDefault(); shopAdd(ev.target.value); } });
 $('#q').addEventListener('input', ev => {
   state.q = ev.target.value; const date = viewDate(); const entries = allEntries().filter(e => e.date <= date);
   renderSearch(date, entries.filter(e => e.date === date), entries);
@@ -977,8 +1046,9 @@ async function reload() {
     state.months.clear();
     const today = nowParts().date; const a = addDays(startMonday(), -7), b = addDays(today, -366);
     const pf = fetchPrefs().catch(() => state.prefsFile || { sha: null, data: { hidden: [] } });   // 読めなくても動く（書くときに読み直す）
+    const sf = fetchJsonFile('shopFile').catch(() => state.shopFile);
     await ensureMonths(a > b ? a : b, today);
-    state.prefsFile = await pf;
+    state.prefsFile = await pf; state.shopFile = await sf;
     if (state.viewDate) await ensureMonths(addDays(mondayOf(state.viewDate), -7), state.viewDate);
     state.streak = await computeStreak(today); state.loaded = true;
   });

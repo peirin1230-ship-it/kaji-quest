@@ -44,7 +44,7 @@
   checklist:
     - 水を流してから規定量を入れ、15〜30 分置いてぬるま湯で流す（一晩放置しない）
     - 月 1 まで。普段の予防は過炭酸と 40〜50℃ の湯で十分
-    - 在庫が 1 本を切ったら買い物リストへ
+    - 在庫が 1 本を切ったら買い物メモへ
 
 - id: microwave
   title: 電子レンジの庫内
@@ -188,7 +188,7 @@
   load: { physical: 1, mental: 2, time_bound: 1 }
   checklist:
     - 浴室を洗って乾かしてから焚く。2 時間は入れない
-    - 在庫が無ければ買い物リストへ
+    - 在庫が無ければ買い物メモへ
 
 - id: bath-drain-parts
   title: 風呂の排水口パーツとフタの裏
@@ -576,13 +576,13 @@
   load: { physical: 1, mental: 3, time_bound: 0 }
   checklist:
     - 主菜だけ 7 つ決める。副菜は在庫で
-    - 決めたら買い物リストへ
+    - 決めたら買い物メモへ
   steps:
     - { id: wmenu-mains, title: 主菜を 7 つ決める, est_minutes: 10 }
-    - { id: wmenu-list, title: 買い物リストへ, est_minutes: 5 }
+    - { id: wmenu-list, title: 買い物メモへ, est_minutes: 5 }
 
 - id: shopping-list
-  title: 買い物リストの更新
+  title: 買い物メモの更新
   area: cooking
   place: その他
   schedule: { type: interval, days: 3 }

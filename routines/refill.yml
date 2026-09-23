@@ -7,6 +7,7 @@
 #   kind: refill            → 「後から記録」ではなく「補充」カードに出す
 #   group: 台所 / 洗濯 / 浴室・洗面 / トイレ / 掃除用 / 消耗品（カードの見出し）
 #   interval_days: N        → 記録が少ないうちの目安の間隔（日）
+#   buy: 買う物の名前       → 🛒 で買い物メモに入る名前。無ければ title から「〜の詰め替え」などを外した名前
 #   schedule は manual 固定。est_minutes は 1 回分の見込み。負荷 W はすべて 1.00
 
 # ---- 台所 ----
@@ -22,7 +23,7 @@
   load: { physical: 1, mental: 1, time_bound: 0 }
   core: false
   checklist:
-    - 詰め替えたら、ストックが最後の 1 つなら買い物リストへ
+    - 詰め替えたら、ストックが最後の 1 つなら買い物メモへ
   pass_allowed: false
 
 - id: refill-dishwasher
@@ -41,6 +42,7 @@
 
 - id: refill-kitchen-bleach
   title: キッチン泡ハイターの補充（新しいのを開けた）
+  buy: キッチン泡ハイター
   area: nameless
   kind: refill
   group: 台所
@@ -85,6 +87,7 @@
 
 - id: refill-hand-soap
   title: ハンドソープの詰め替え（台所・洗面）
+  buy: ハンドソープ（詰め替え）
   area: nameless
   kind: refill
   group: 台所
@@ -144,6 +147,7 @@
 
 - id: refill-laundry-soap
   title: 部分洗い用の固形石けんの補充
+  buy: 固形石けん（部分洗い用）
   area: nameless
   kind: refill
   group: 洗濯
@@ -216,6 +220,7 @@
 
 - id: refill-mold-remover
   title: カビ取り剤の補充（新しいのを開けた）
+  buy: カビ取り剤
   area: nameless
   kind: refill
   group: 浴室・洗面
@@ -290,6 +295,7 @@
 
 - id: refill-toilet-brush
   title: 流せるトイレブラシの替えを補充
+  buy: 流せるトイレブラシの替え
   area: nameless
   kind: refill
   group: トイレ
@@ -305,6 +311,7 @@
 # ---- 掃除用 ----
 - id: refill-sesqui-spray
   title: セスキスプレーを作る（水 500ml に小さじ 1）
+  buy: セスキ炭酸ソーダ（粉）
   area: nameless
   kind: refill
   group: 掃除用
@@ -320,6 +327,7 @@
 
 - id: refill-citric-spray
   title: クエン酸スプレーを作る（水 200ml に小さじ 1）
+  buy: クエン酸（粉）
   area: nameless
   kind: refill
   group: 掃除用
@@ -335,6 +343,7 @@
 
 - id: refill-pipe-cleaner
   title: パイプ洗浄剤の補充（新しいのを開けた）
+  buy: パイプ洗浄剤
   area: nameless
   kind: refill
   group: 掃除用
@@ -345,7 +354,7 @@
   load: { physical: 1, mental: 1, time_bound: 0 }
   core: false
   checklist:
-    - 在庫が 1 本を切ったら買い物リストへ
+    - 在庫が 1 本を切ったら買い物メモへ
   pass_allowed: false
 
 - id: refill-floor-sheets
@@ -393,6 +402,7 @@
 
 - id: refill-garbage-bags
   title: ゴミ袋の補充（箱・引き出し）
+  buy: ゴミ袋
   area: nameless
   kind: refill
   group: 消耗品
@@ -407,6 +417,7 @@
 
 - id: refill-tissue
   title: ティッシュ・おしりふきの補充
+  buy: ティッシュ・おしりふき
   area: nameless
   kind: refill
   group: 消耗品
@@ -421,6 +432,7 @@
 
 - id: refill-kitchen-paper
   title: キッチンペーパー・ラップの補充
+  buy: キッチンペーパー・ラップ
   area: nameless
   kind: refill
   group: 消耗品
