@@ -1,0 +1,65 @@
+{
+ "repo": {
+  "owner": "peirin1230-ship-it",
+  "name": "kaji-quest",
+  "branch": "main"
+ },
+ "me": {
+  "github": "peirin1230-ship-it"
+ },
+ "start_date": "2026-09-14",
+ "target": {
+  "final_weighted_minutes": 780,
+  "ramp": [
+   {
+    "weeks": "1-4",
+    "ratio": 0.5
+   },
+   {
+    "weeks": "5-8",
+    "ratio": 0.7
+   },
+   {
+    "weeks": "9-12",
+    "ratio": 0.85
+   },
+   {
+    "weeks": "13-",
+    "ratio": 1.0
+   }
+  ],
+  "auto_downshift_after_miss": 2
+ },
+ "pass": {
+  "per_week": 1
+ },
+ "privacy": {
+  "log_time": true
+ },
+ "titles": [
+  {
+   "badges": 5,
+   "name": "見習い"
+  },
+  {
+   "badges": 15,
+   "name": "家事人"
+  },
+  {
+   "badges": 30,
+   "name": "熟練"
+  },
+  {
+   "badges": 50,
+   "name": "師範"
+  },
+  {
+   "badges": 70,
+   "name": "家事の匠"
+  },
+  {
+   "badges": 90,
+   "name": "伝説"
+  }
+ ]
+}
