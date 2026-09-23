@@ -257,26 +257,45 @@
     - { id: tdeep-vent, title: 換気口のほこり, est_minutes: 5 }
 
 - id: laundry-filter
-  title: 洗濯機の糸くずフィルターと洗剤投入口
+  title: ドラム式の手入れ（乾燥フィルターの奥・ドアパッキン・投入口）
   area: cleaning
   place: 風呂・洗面・トイレ
   schedule: { type: interval, days: 7 }
-  est_minutes: 3
+  est_minutes: 5
   load: { physical: 1, mental: 1, time_bound: 0 }
   checklist:
-    - フィルターの糸くずを捨てて水洗い
-    - 投入口の洗剤カスを拭く
+    - 乾燥フィルターを外し、奥の綿ぼこりを掃除機の細いノズルか小さいブラシで取る（表面は毎回、奥は週 1）
+    - ドアパッキンの裏（ゴムをめくった内側）の水気と糸くずを拭く。黒い点はカビの始まり
+    - 洗剤・柔軟剤の投入口を外して洗剤カスを洗う
+    - 機種に「乾燥経路のお手入れ」コースがあれば月 1 で回す
+  steps:
+    - { id: lf-filter, title: 乾燥フィルターの奥のほこり, est_minutes: 2 }
+    - { id: lf-gasket, title: ドアパッキンの裏を拭く, est_minutes: 2 }
+    - { id: lf-tray, title: 投入口の洗剤カス, est_minutes: 1 }
 
 - id: washer-tub
-  title: 洗濯槽クリーナー
+  title: 洗濯槽クリーナー（ドラム式用）
   area: cleaning
   place: 風呂・洗面・トイレ
   schedule: { type: interval, days: 30 }
   est_minutes: 5
   load: { physical: 1, mental: 2, time_bound: 0 }
   checklist:
-    - 夜に槽洗浄コースを回す
-    - 終わったらフタを開けて乾かす
+    - ドラム式対応（塩素系）のクリーナーで「槽洗浄」コース。酸素系は泡があふれるので使わない
+    - 夜に回して、終わったらドアを少し開けて乾かす
+    - クリーナーの残りが 1 本になったら、補充の 🛒 で買い物メモへ
+
+- id: washer-drain-filter
+  title: 洗濯機の排水フィルター（前面の下）
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 5
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  checklist:
+    - 電源を切り、前面下のカバーを開けて受け皿かタオルを敷く
+    - フィルターを回して外し、糸くず・髪・ポケットの小物を取って水洗い
+    - 詰まると排水エラーで途中停止し、朝に濡れたままの洗濯物と対面する
 
 - id: drains-other
   title: 洗面・洗濯機の排水口

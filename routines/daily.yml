@@ -22,6 +22,7 @@
 # 2026-09-20 記録 6 日分を見て見直し: 風呂掃除とゴミは夜に記録されていたので夜へ。
 # 「名もなき家事」に繰り返し入っていた朝ごはん・夜ご飯・片付けを正式なタスクに。
 # 2026-09-21 全タスクを手順（steps）に細分化。洗剤の補充は routines/refill.yml で洗剤ごとに。
+# 2026-09-23 洗濯機はドラム式（乾燥まで）: 「干す」を毎日の欄から外して後から記録へ。取り出しに乾燥フィルターの手順を追加。
 
 # ---- 朝 ----
 - id: breakfast-cook
@@ -121,53 +122,38 @@
   pass_allowed: true
 
 - id: laundry-wash
-  title: 洗濯機を回す
+  title: 洗濯乾燥を回す（ドラム式）
   area: laundry
-  schedule: { type: cron, expr: "0 20 * * *" }   # 朝派なら slots を [morning] に
+  schedule: { type: cron, expr: "0 20 * * *" }   # 夜に回して寝る前か翌朝に取り出す。朝派なら slots を [morning] に
   slots: [night]
   est_minutes: 5
   load: { physical: 1, mental: 1, time_bound: 1 }   # W=1.10 → 換算 6分
   core: true
   checklist:
-    - カゴの中身をそのまま洗濯機へ（ネット物は分けてある前提）
-    - 洗剤は規定量
+    - 乾燥にかけない物（ウール・装飾付き・伸びる下着・防水物）はネットに分けて別にする
+    - 洗剤は規定量。ドラム式は水が少ないので入れすぎない。柔軟剤はタオルには控えめ
+    - 乾燥できる量は洗濯容量より小さい。詰め込みは 7 割まで
   steps:
     - { id: laundry-collect, title: 洗濯物を集める（ポケット確認）, est_minutes: 2 }
-    - { id: laundry-net, title: ネット物を分ける, est_minutes: 1 }
-    - { id: laundry-start, title: 洗剤を入れて回す, est_minutes: 2 }
-  pass_allowed: true
-
-- id: laundry-hang
-  title: 洗濯物を干す
-  area: laundry
-  schedule: { type: cron, expr: "0 21 * * *" }
-  slots: [night]
-  est_minutes: 10
-  load: { physical: 2, mental: 1, time_bound: 1 }   # W=1.20 → 換算 12分
-  core: true
-  checklist:
-    - 振ってしわを伸ばす
-    - 間隔 10cm で干す。部屋干しなら風を当てる
-  steps:
-    - { id: hang-shake, title: 取り出して振ってしわを伸ばす, est_minutes: 2 }
-    - { id: hang-hangers, title: ハンガー・ピンチに掛ける, est_minutes: 6 }
-    - { id: hang-place, title: 干し場へ出す・風を当てる, est_minutes: 2 }
+    - { id: laundry-net, title: 乾燥にかけない物を分ける, est_minutes: 1 }
+    - { id: laundry-start, title: 洗剤を入れて洗濯乾燥コースで回す, est_minutes: 2 }
   pass_allowed: true
 
 - id: laundry-fold-store
-  title: 洗濯物を取り込んでたたむ・しまう
+  title: 乾燥が終わったら取り出してたたむ・しまう
   area: laundry
-  schedule: { type: cron, expr: "0 20 * * *" }
+  schedule: { type: cron, expr: "0 20 * * *" }   # 夜に回した分は翌朝でもよい。行は夜の欄に出るが、いつ記録しても同じ
   slots: [night]
   est_minutes: 15
   load: { physical: 1, mental: 1, time_bound: 0 }   # W=1.00 → 換算 15分
   core: false
   checklist:
-    - 乾いたものを取り込む
-    - ハンガーのものはそのままクローゼットへ
-    - 子ども服は引き出しに放り込む。靴下はペアにしない（同じ種類に統一）
+    - 終わったらすぐ取り出す。放置がシワの原因
+    - 乾燥フィルターの綿ぼこりは毎回取る。乾き方と電気代が変わる
+    - ハンガーの物はそのままクローゼットへ。子ども服は引き出しに放り込む。靴下はペアにしない（同じ種類に統一）
   steps:
-    - { id: fold-take, title: 取り込む, est_minutes: 3 }
+    - { id: fold-filter, title: 乾燥フィルターの綿ぼこりを取る, est_minutes: 1 }
+    - { id: fold-take, title: 取り出す, est_minutes: 2 }
     - { id: fold-fold, title: たたむ, est_minutes: 8 }
     - { id: fold-store, title: しまう, est_minutes: 4 }
   pass_allowed: true
@@ -232,6 +218,19 @@
   core: false
   checklist:
     - 床の物をカゴに入れるだけでも 1 回に数える
+  pass_allowed: false
+
+- id: laundry-hang
+  title: 干す（乾燥にかけない物だけ）
+  area: laundry
+  schedule: { type: manual }    # ドラム式で乾燥まで回すので毎日の欄には出さない。干した日だけ 1 タップ
+  est_minutes: 5
+  quick_minutes: [2, 5, 10]
+  load: { physical: 1, mental: 1, time_bound: 0 }   # W=1.00
+  core: false
+  checklist:
+    - ウール・装飾付き・伸びる下着・防水物・縮む物
+    - 間隔をあけて風を当てる
   pass_allowed: false
 
 - id: garbage-out

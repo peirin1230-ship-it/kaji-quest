@@ -693,7 +693,7 @@ function statAdd(st, e) {
   st.n++; st.byArea[area] = (st.byArea[area] || 0) + 1;
   if (!sx) st.byTask[pid] = (st.byTask[pid] || 0) + 1;   // 手順だけの記録は、その日に手順が全部そろった時点で親 1 回と数える（statEndDay）
   if (r && r.kind) st.byKind[r.kind] = (st.byKind[r.kind] || 0) + 1;
-  if (sx) { st.stepEntries++; const k = `${day}|${pid}|${entrySlot(e, r)}`; (st.stepSets[k] || (st.stepSets[k] = new Set())).add(e.task_id); }
+  if (sx) { st.stepEntries++; st.byTask[e.task_id] = (st.byTask[e.task_id] || 0) + 1; const k = `${day}|${pid}|${entrySlot(e, r)}`; (st.stepSets[k] || (st.stepSets[k] = new Set())).add(e.task_id); }   // 手順 id 自体の回数は手順ごとのバッジ用
   const wm = +e.weighted_minutes || 0; st.weighted += wm; st.weightedByArea[area] = (st.weightedByArea[area] || 0) + wm;
   st.xpByArea[area] = (st.xpByArea[area] || 0) + (Number.isFinite(+e.xp) ? +e.xp : Math.round(wm));
   const wn = weekNoOf(day); st.weekTotal[wn] = (st.weekTotal[wn] || 0) + wm;

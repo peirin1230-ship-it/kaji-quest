@@ -77,7 +77,7 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 # ---- E. 洗濯 ----
 - { id: laundry-first, name: 初洗濯, icon: 👕, tier: bronze, cat: 洗濯, desc: 洗濯を初めて記録, condition: { type: first, area: laundry } }
 - { id: wash-025, name: 回す人, icon: 🫧, tier: silver, cat: 洗濯, desc: 洗濯機を 25 回回す, condition: { type: count, task: laundry-wash, gte: 25 } }
-- { id: hang-025, name: 干す人, icon: 🌤, tier: silver, cat: 洗濯, desc: 洗濯物を 25 回干す, condition: { type: count, task: laundry-hang, gte: 25 } }
+- { id: dryfilter-030, name: ほこりの番人, icon: 🌬, tier: silver, cat: 洗濯, desc: 乾燥フィルターの綿ぼこりを 30 回取る（取り出しの手順）, condition: { type: count, task: fold-filter, gte: 30 } }
 - { id: fold-025, name: たたむ人, icon: 🧺, tier: silver, cat: 洗濯, desc: 取り込んでたたむ 25 回, condition: { type: count, task: laundry-fold-store, gte: 25 } }
 - { id: fold-100, name: たたみの達人, icon: 🧺, tier: gold, cat: 洗濯, desc: 取り込んでたたむ 100 回, condition: { type: count, task: laundry-fold-store, gte: 100 } }
 - { id: daycare-010, name: 園の守り, icon: 🎒, tier: silver, cat: 洗濯, desc: 保育園のシーツ・タオルを 10 回, condition: { type: count, task: daycare-laundry, gte: 10 } }

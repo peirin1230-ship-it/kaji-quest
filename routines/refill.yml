@@ -113,7 +113,7 @@
   load: { physical: 1, mental: 1, time_bound: 0 }
   core: false
   checklist:
-    - 1 種類に固定して迷わない。量は規定量
+    - 1 種類に固定して迷わない。量は規定量。ドラム式は水が少ないので入れすぎない（すすぎ残り・乾燥ムラの原因）
   pass_allowed: false
 
 - id: refill-softener
@@ -158,6 +158,22 @@
   load: { physical: 1, mental: 1, time_bound: 0 }
   core: false
   checklist: []
+  pass_allowed: false
+
+- id: refill-washer-cleaner
+  title: 洗濯槽クリーナー（ドラム式用）の補充
+  buy: 洗濯槽クリーナー（ドラム式用・塩素系）
+  area: nameless
+  kind: refill
+  group: 洗濯
+  schedule: { type: manual }
+  interval_days: 30
+  est_minutes: 2
+  quick_minutes: [2, 5]
+  load: { physical: 1, mental: 1, time_bound: 0 }
+  core: false
+  checklist:
+    - 月 1 の槽洗浄で 1 本使う。残り 1 本になったら 🛒
   pass_allowed: false
 
 # ---- 浴室・洗面 ----
