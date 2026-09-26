@@ -73,3 +73,4 @@
 {"date":"2026-09-26","ts":"2026-09-26T18:27:09+09:00","task_id":"daycare-laundry","title":"保育園のシーツ・タオル類を洗って戻す","area":"laundry","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.35,"weighted_minutes":20.3,"xp":20,"id":"mui6rfxpdxrj"}
 {"date":"2026-09-26","ts":"2026-09-26T18:27:14+09:00","task_id":"laundry-fold-store","title":"乾燥が終わったら取り出してたたむ・しまう","area":"laundry","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1,"weighted_minutes":15,"xp":15,"id":"mui6rjuddy5v"}
 {"date":"2026-09-26","ts":"2026-09-26T18:27:17+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mui6rlskk6gq"}
+{"date":"2026-09-26","ts":"2026-09-26T18:27:28+09:00","task_id":"_tip","title":"換気扇のフィルターに不織布カバーを貼る","area":"cleaning","status":"tip","tip_id":"cleaning-019","tip_practiced":true,"id":"mui6ruan4p97"}
