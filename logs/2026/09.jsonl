@@ -70,3 +70,4 @@
 {"date":"2026-09-24","backfill":true,"task_id":"garbage","title":"ゴミまとめ（翌朝出す分）","area":"nameless","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1.35,"weighted_minutes":6.8,"xp":7,"id":"mufowr2y6c76"}
 {"date":"2026-09-25","ts":"2026-09-25T08:28:42+09:00","task_id":"garbage-out","title":"ゴミを出す（収集日の朝）","area":"nameless","slot":"morning","status":"done","mode":"full","actual_minutes":2,"weight":1.2,"weighted_minutes":2.4,"xp":2,"id":"mug5xzn008ei"}
 {"date":"2026-09-25","backfill":true,"task_id":"_pass","title":"パス（ストリーク維持）","status":"passed","mode":"full","actual_minutes":0,"weight":1,"weighted_minutes":0,"xp":0,"id":"muhopxd6zlgx"}
+{"date":"2026-09-26","ts":"2026-09-26T18:27:09+09:00","task_id":"daycare-laundry","title":"保育園のシーツ・タオル類を洗って戻す","area":"laundry","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.35,"weighted_minutes":20.3,"xp":20,"id":"mui6rfxpdxrj"}
