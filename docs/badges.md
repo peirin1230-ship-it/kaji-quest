@@ -70,6 +70,7 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 - { id: screens-first, name: 網戸の向こう, icon: 🕸, tier: bronze, cat: 掃除, desc: 網戸を初めて掃除, condition: { type: first, task: screens } }
 - { id: balcony-first, name: ベランダ開拓, icon: 🪴, tier: bronze, cat: 掃除, desc: ベランダを初めて掃除, condition: { type: first, task: balcony } }
 - { id: garden-first, name: 庭の番人, icon: 🌿, tier: bronze, cat: 掃除, desc: 庭の草取りを初めて記録, condition: { type: first, task: garden-weeding } }
+- { id: mirror-first, name: 鏡よ鏡, icon: 🪞, tier: bronze, cat: 掃除, desc: 浴室の鏡のうろこ取りと曇り止めを初めてやり切る, condition: { type: first, task: bath-mirror } }
 - { id: clean-lv3, name: 汚れの化学者, icon: 🧪, tier: gold, cat: 掃除, desc: 掃除 Lv3, condition: { type: level, area: cleaning, gte: 3 } }
 - { id: clean-lv5, name: 予防設計者, icon: 🛡, tier: platinum, cat: 掃除, desc: 掃除 Lv5, condition: { type: level, area: cleaning, gte: 5 } }
 - { id: all-places, name: 家中一巡, icon: 🌟, tier: gold, cat: 掃除, desc: 掃除メニューの全エリアを 30 日以内に 1 周, condition: { type: custom, key: all_places, days: 30 } }

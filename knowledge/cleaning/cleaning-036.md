@@ -5,7 +5,7 @@ area: cleaning
 topic: 道具
 level: 1
 tags: [カビ, 予防]
-tasks: [bath-clean, bathroom-deep]
+tasks: [bath-clean, bathroom-deep, bath-mirror]
 action: スクイジーを浴室の壁に吊るす（なければ買い物リストへ）
 ---
 

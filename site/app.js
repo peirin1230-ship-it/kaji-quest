@@ -682,7 +682,7 @@ function newStats() {
   return { n: 0, byTask: {}, byArea: {}, weighted: 0, weightedByArea: {}, xpByArea: {}, days: new Set(), passDays: new Set(), coreDays: new Set(),
     streakCur: 0, streakBest: 0, coreStreakCur: 0, coreStreakBest: 0, passes: 0, partials: 0, learned: 0, practiced: 0, tipStage: {},
     fast: {}, long: {}, slotDays: {}, dayCount: {}, morningCount: {}, early: 0, resume: 0, placeLast: {}, weekTotal: {}, areaDays: {}, lastDay: '',
-    byKind: {}, stepEntries: 0, stepSets: {}, stepsComplete: 0 };
+    byKind: {}, stepEntries: 0, stepSets: {}, stepsComplete: 0, menuSteps: {} };
 }
 function statAdd(st, e) {
   if (e.tip_id) { const t = st.tipStage[e.tip_id] || (st.tipStage[e.tip_id] = { stage: 0 }); if (e.tip_practiced) { t.stage = Math.min(t.stage + 1, TIP_INTERVALS.length - 1); st.practiced++; } else t.stage = Math.max(0, t.stage - 1); }
@@ -693,7 +693,14 @@ function statAdd(st, e) {
   st.n++; st.byArea[area] = (st.byArea[area] || 0) + 1;
   if (!sx) st.byTask[pid] = (st.byTask[pid] || 0) + 1;   // 手順だけの記録は、その日に手順が全部そろった時点で親 1 回と数える（statEndDay）
   if (r && r.kind) st.byKind[r.kind] = (st.byKind[r.kind] || 0) + 1;
-  if (sx) { st.stepEntries++; st.byTask[e.task_id] = (st.byTask[e.task_id] || 0) + 1; const k = `${day}|${pid}|${entrySlot(e, r)}`; (st.stepSets[k] || (st.stepSets[k] = new Set())).add(e.task_id); }   // 手順 id 自体の回数は手順ごとのバッジ用
+  if (sx) {
+    st.stepEntries++; st.byTask[e.task_id] = (st.byTask[e.task_id] || 0) + 1;   // 手順 id 自体の回数は手順ごとのバッジ用
+    if (r && isMenu(r)) {   // 掃除メニューの手順は、目安日数の範囲で全部そろえば 1 回（時間帯や日をまたいでよい。menuItems と同じ）
+      const days = Math.max(1, +r.schedule.days || 7); const m = st.menuSteps[pid] || (st.menuSteps[pid] = new Map());
+      m.set(e.task_id, day); for (const [k, d] of m) if (daysBetween(d, day) > days) m.delete(k);
+      if (stepsOf(r).length && stepsOf(r).every(x => m.has(x.id))) { st.stepsComplete++; st.byTask[pid] = (st.byTask[pid] || 0) + 1; st.placeLast[r.place || 'その他'] = day; m.clear(); }
+    } else { const k = `${day}|${pid}|${entrySlot(e, r)}`; (st.stepSets[k] || (st.stepSets[k] = new Set())).add(e.task_id); }   // 毎日のタスクは、その日のその時間帯で全部そろえば 1 回
+  }
   const wm = +e.weighted_minutes || 0; st.weighted += wm; st.weightedByArea[area] = (st.weightedByArea[area] || 0) + wm;
   st.xpByArea[area] = (st.xpByArea[area] || 0) + (Number.isFinite(+e.xp) ? +e.xp : Math.round(wm));
   const wn = weekNoOf(day); st.weekTotal[wn] = (st.weekTotal[wn] || 0) + wm;

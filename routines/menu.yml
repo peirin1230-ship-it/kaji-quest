@@ -211,6 +211,28 @@
     - { id: bdp-scrub, title: 部品を外して古歯ブラシ, est_minutes: 7 }
     - { id: bdp-back, title: 戻して湯を流す, est_minutes: 3 }
 
+- id: bath-mirror
+  title: 浴室の鏡（うろこ取りと曇り止め）
+  area: cleaning
+  place: 風呂・洗面・トイレ
+  schedule: { type: interval, days: 30 }
+  est_minutes: 20
+  load: { physical: 2, mental: 1, time_bound: 0 }
+  checklist:
+    - 先に確認。鏡の端か取扱説明書に「くもり止め」「防曇」「コート」の表示がある鏡や、スイッチ付きのヒーターミラーは、ダイヤモンドパッド・クレンザー・メラミンを使わない。中性洗剤とやわらかいスポンジだけ
+    - クエン酸を使う日は、カビ取り剤など塩素系を浴室で使わない
+    - 浴室用の中性洗剤で皮脂と石けんカスを落とす
+    - クエン酸水（水 200ml に小さじ 1〜2）をキッチンペーパーに含ませて貼り、ラップで 1〜2 時間
+    - はがしてスポンジでこする。残ったうろこは、コートなしの鏡だけ、ダイヤモンドパッドを濡らして軽い力で
+    - 流して水を切り、乾拭き。完全に乾いてから曇り止めを薄く塗る
+    - 手順は時間帯や日をまたいで記録してよい（貼って待つ間に別の家事）
+  steps:
+    - { id: mirror-wash, title: 洗剤で皮脂と石けんカスを落とす, est_minutes: 3 }
+    - { id: mirror-citric, title: クエン酸を貼ってラップ（1〜2 時間置く）, est_minutes: 4 }
+    - { id: mirror-scrub, title: はがしてこする・残りをパッドで, est_minutes: 8 }
+    - { id: mirror-dry, title: 流して水を切り、乾拭き, est_minutes: 2 }
+    - { id: mirror-antifog, title: 曇り止めを薄く塗る, est_minutes: 3 }
+
 - id: washbasin
   title: 洗面台と鏡
   area: cleaning

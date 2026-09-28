@@ -5,7 +5,7 @@ area: cleaning
 topic: 水回り
 level: 2
 tags: [水垢]
-tasks: [washbasin, bathroom-deep]
+tasks: [washbasin, bathroom-deep, bath-mirror]
 action: 浴室の鏡の下半分だけ、クエン酸湿布を 30 分してみる
 ---
 
