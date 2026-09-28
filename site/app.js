@@ -28,7 +28,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } }, shopFile: { sha: null, data: { items: [], recent: [] } }, shopDraft: '', shopFocus: false };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } }, shopFile: { sha: null, data: { items: [], recent: [] } }, shopDraft: '', shopFocus: false, trophyCat: '' };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -682,26 +682,37 @@ function newStats() {
   return { n: 0, byTask: {}, byArea: {}, weighted: 0, weightedByArea: {}, xpByArea: {}, days: new Set(), passDays: new Set(), coreDays: new Set(),
     streakCur: 0, streakBest: 0, coreStreakCur: 0, coreStreakBest: 0, passes: 0, partials: 0, learned: 0, practiced: 0, tipStage: {},
     fast: {}, long: {}, slotDays: {}, dayCount: {}, morningCount: {}, early: 0, resume: 0, placeLast: {}, weekTotal: {}, areaDays: {}, lastDay: '',
-    byKind: {}, stepEntries: 0, stepSets: {}, stepsComplete: 0, menuSteps: {} };
+    byKind: {}, stepEntries: 0, stepSets: {}, stepsComplete: 0, menuSteps: {},
+    moods: 0, backfills: 0, dayWeighted: {}, daySlots: {}, slotCount: {}, dayTasks: {}, tipsPracticed: new Set(), firstDay: '', yearEnd: {} };
+}
+const addDayTask = (st, day, pid) => { (st.dayTasks[day] || (st.dayTasks[day] = new Set())).add(pid); };
+// 掃除メニューを 1 回やり終えた（親を記録、または手順が全部そろった）
+function menuDone(st, r, day) {
+  st.placeLast[r.place || 'その他'] = day;
+  const md = day.slice(5); if (md >= '12-25' && md <= '12-31') { const y = day.slice(0, 4); st.yearEnd[y] = (st.yearEnd[y] || 0) + 1; }
 }
 function statAdd(st, e) {
-  if (e.tip_id) { const t = st.tipStage[e.tip_id] || (st.tipStage[e.tip_id] = { stage: 0 }); if (e.tip_practiced) { t.stage = Math.min(t.stage + 1, TIP_INTERVALS.length - 1); st.practiced++; } else t.stage = Math.max(0, t.stage - 1); }
+  if (e.tip_id) { const t = st.tipStage[e.tip_id] || (st.tipStage[e.tip_id] = { stage: 0 }); if (e.tip_practiced) { t.stage = Math.min(t.stage + 1, TIP_INTERVALS.length - 1); st.practiced++; st.tipsPracticed.add(e.tip_id); } else t.stage = Math.max(0, t.stage - 1); }
   if (e.status === 'passed') { st.passes++; st.passDays.add(e.date); return; }
   if (!EARNED.has(e.status)) return;
   const sx = stepById(e.task_id); const r = sx ? sx.parent : routineById(e.task_id); const pid = r ? r.id : e.task_id;   // 手順の記録は親のタスクに数える
   const area = e.area || (r && r.area) || 'nameless'; const day = e.date;
   st.n++; st.byArea[area] = (st.byArea[area] || 0) + 1;
-  if (!sx) st.byTask[pid] = (st.byTask[pid] || 0) + 1;   // 手順だけの記録は、その日に手順が全部そろった時点で親 1 回と数える（statEndDay）
+  if (!st.firstDay || day < st.firstDay) st.firstDay = day;
+  if (e.mood) st.moods++;
+  if (e.backfill) st.backfills++;
+  if (!sx) { st.byTask[pid] = (st.byTask[pid] || 0) + 1; addDayTask(st, day, pid); }   // 手順だけの記録は、その日に手順が全部そろった時点で親 1 回と数える（statEndDay）
   if (r && r.kind) st.byKind[r.kind] = (st.byKind[r.kind] || 0) + 1;
   if (sx) {
     st.stepEntries++; st.byTask[e.task_id] = (st.byTask[e.task_id] || 0) + 1;   // 手順 id 自体の回数は手順ごとのバッジ用
     if (r && isMenu(r)) {   // 掃除メニューの手順は、目安日数の範囲で全部そろえば 1 回（時間帯や日をまたいでよい。menuItems と同じ）
       const days = Math.max(1, +r.schedule.days || 7); const m = st.menuSteps[pid] || (st.menuSteps[pid] = new Map());
       m.set(e.task_id, day); for (const [k, d] of m) if (daysBetween(d, day) > days) m.delete(k);
-      if (stepsOf(r).length && stepsOf(r).every(x => m.has(x.id))) { st.stepsComplete++; st.byTask[pid] = (st.byTask[pid] || 0) + 1; st.placeLast[r.place || 'その他'] = day; m.clear(); }
+      if (stepsOf(r).length && stepsOf(r).every(x => m.has(x.id))) { st.stepsComplete++; st.byTask[pid] = (st.byTask[pid] || 0) + 1; addDayTask(st, day, pid); menuDone(st, r, day); m.clear(); }
     } else { const k = `${day}|${pid}|${entrySlot(e, r)}`; (st.stepSets[k] || (st.stepSets[k] = new Set())).add(e.task_id); }   // 毎日のタスクは、その日のその時間帯で全部そろえば 1 回
   }
   const wm = +e.weighted_minutes || 0; st.weighted += wm; st.weightedByArea[area] = (st.weightedByArea[area] || 0) + wm;
+  st.dayWeighted[day] = (st.dayWeighted[day] || 0) + wm;
   st.xpByArea[area] = (st.xpByArea[area] || 0) + (Number.isFinite(+e.xp) ? +e.xp : Math.round(wm));
   const wn = weekNoOf(day); st.weekTotal[wn] = (st.weekTotal[wn] || 0) + wm;
   if (e.status === 'partial') st.partials++;
@@ -712,9 +723,10 @@ function statAdd(st, e) {
   const sl = entrySlot(e, r);
   const sd = st.slotDays[pid] || (st.slotDays[pid] = {}); (sd[day] || (sd[day] = new Set())).add(sl);
   st.dayCount[day] = (st.dayCount[day] || 0) + 1;
+  (st.daySlots[day] || (st.daySlots[day] = new Set())).add(sl); st.slotCount[sl] = (st.slotCount[sl] || 0) + 1;
   if (sl === 'morning') st.morningCount[day] = (st.morningCount[day] || 0) + 1;
   const m = /T(\d\d):(\d\d)/.exec(String(e.ts || '')); if (m) { const hm = +m[1] * 60 + +m[2]; if (hm >= 180 && hm < 330) st.early++; }
-  if (r && isMenu(r) && !sx) st.placeLast[r.place || 'その他'] = day;
+  if (r && isMenu(r) && !sx) menuDone(st, r, day);
   (st.areaDays[day] || (st.areaDays[day] = new Set())).add(area);
   if (r && r.core) st.coreDays.add(day);
 }
@@ -722,7 +734,7 @@ function statEndDay(st, day) {
   Object.keys(st.stepSets).forEach(k => {   // その日、手順を全部たどって終えたタスクを数える（親 1 回の完了としても数える）
     if (!k.startsWith(day + '|')) return;
     const pid = k.split('|')[1]; const r = routineById(pid);
-    if (r && stepsOf(r).length && stepsOf(r).every(x => st.stepSets[k].has(x.id))) { st.stepsComplete++; st.byTask[pid] = (st.byTask[pid] || 0) + 1; }
+    if (r && stepsOf(r).length && stepsOf(r).every(x => st.stepSets[k].has(x.id))) { st.stepsComplete++; st.byTask[pid] = (st.byTask[pid] || 0) + 1; addDayTask(st, day, pid); }
     delete st.stepSets[k];
   });
   const counted = (st.dayCount[day] || 0) > 0 || st.passDays.has(day);
@@ -758,6 +770,8 @@ function measure(b, st, earned, day) {
     if (c.status === 'partial') return st.partials;
     if (c.learned) return st.learned;
     if (c.practiced) return st.practiced;
+    if (c.mood) return st.moods;
+    if (c.backfill) return st.backfills;
     return st.n;
   };
   const lv = a => levelOf(st.xpByArea[a] || 0);
@@ -798,11 +812,33 @@ function customMeasure(c, st, day, gte) {
     case 'all_places': { const places = [...new Set(activeRoutines().filter(isMenu).map(r => r.place || 'その他'))]; const within = +c.days || 30;
       return { v: places.filter(p => st.placeLast[p] && daysBetween(st.placeLast[p], day) <= within).length, t: places.length }; }
     case 'everyday_weeks': { let v = 0; const cur = weekNoOf(day); for (let w = 1; w < cur; w++) { const a = weekStartOf(w); if (addDays(a, 6) >= day) break; if ([...Array(7)].every((_, i) => st.days.has(addDays(a, i)))) v++; } return { v, t: gte }; }
-    case 'tip_stage': return { v: Object.values(st.tipStage).filter(t => t.stage >= TIP_INTERVALS.length - 1).length, t: gte };
+    case 'tip_stage': { const need = c.stage != null ? +c.stage : TIP_INTERVALS.length - 1; return { v: Object.values(st.tipStage).filter(t => t.stage >= need).length, t: gte }; }
     case 'best_week': { const wr = weekResults(st, day).list; let best = -1, v = 0; wr.forEach((x, i) => { if (i > 0 && x.total > best) v++; best = Math.max(best, x.total); }); return { v, t: gte }; }
     case 'ramp_top': return { v: ratioFor(weekNoOf(day), weekResults(st, day).penalty) >= 1 ? 1 : 0, t: 1 };
     case 'step_entries': return { v: st.stepEntries, t: gte };
     case 'steps_complete': return { v: st.stepsComplete, t: gte };
+    case 'record_days': return { v: Object.keys(st.dayCount).length, t: gte };
+    case 'since_first': return { v: st.firstDay ? daysBetween(st.firstDay, day) : 0, t: +c.n || 30 };
+    case 'full_months': {   // 終わった暦の月で、全部の日に記録（パスを含む）があるもの
+      let v = 0; new Set([...st.days].map(d => d.slice(0, 7))).forEach(ym => {
+        const [y, mo] = ym.split('-').map(Number); const dim = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+        if (`${ym}-${String(dim).padStart(2, '0')}` <= day && [...Array(dim)].every((_, i) => st.days.has(`${ym}-${String(i + 1).padStart(2, '0')}`))) v++;
+      }); return { v, t: gte }; }
+    case 'seasons': { const s = new Set([...st.days].map(d => { const m = +d.slice(5, 7); return m >= 3 && m <= 5 ? 'spring' : m >= 6 && m <= 8 ? 'summer' : m >= 9 && m <= 11 ? 'autumn' : 'winter'; })); return { v: s.size, t: gte }; }
+    case 'dow_cover': { const cnt = [0, 0, 0, 0, 0, 0, 0]; Object.keys(st.dayCount).forEach(d => cnt[dowOf(d)]++); return { v: cnt.filter(x => x >= (+c.n || 1)).length, t: 7 }; }
+    case 'tasks_day': { const ts = c.tasks || []; return { v: Object.keys(st.dayTasks).filter(d => ts.every(id => st.dayTasks[d].has(id))).length, t: gte }; }
+    case 'distinct': {   // 種類数。削除したものは数えない。all: true は「今出ている全種類」
+      const pool = activeRoutines().filter(r => c.of === 'refill' ? isRefill(r) : c.of === 'menu' ? isMenu(r) : true).filter(r => !c.place || (r.place || 'その他') === c.place);
+      return { v: pool.filter(r => (st.byTask[r.id] || 0) > 0).length, t: c.all ? pool.length : gte }; }
+    case 'menu_count': { const ids = activeRoutines().filter(r => isMenu(r) && (+r.schedule.days || 0) >= (+c.min_days || 0)).map(r => r.id); return { v: ids.reduce((a, id) => a + (st.byTask[id] || 0), 0), t: gte }; }
+    case 'day_weighted': return { v: Object.keys(st.dayWeighted).filter(d => st.dayWeighted[d] >= (+c.n || 60)).length, t: gte };
+    case 'light_days': return { v: Object.keys(st.dayWeighted).filter(d => d < day && st.dayWeighted[d] > 0 && st.dayWeighted[d] <= (+c.n || 20)).length, t: gte };   // その日はまだ増えるかもしれないので前日まで
+    case 'all_slots_days': return { v: Object.keys(st.daySlots).filter(d => SLOTS.every(sl => st.daySlots[d].has(sl.id))).length, t: gte };
+    case 'slot_total': return { v: st.slotCount[c.slot] || 0, t: gte };
+    case 'tips_distinct': return { v: st.tipsPracticed.size, t: gte };
+    case 'fast_total': return { v: Object.values(st.fast).reduce((a, x) => a + x, 0), t: gte };
+    case 'on_date': { const md = c.md || []; return { v: [...st.days].filter(d => c.zorome ? d.slice(5, 7) === d.slice(8, 10) : md.includes(d.slice(5))).length, t: gte }; }
+    case 'year_end': return { v: Math.max(0, ...Object.values(st.yearEnd)), t: gte };
   }
   return { v: 0, t: 1 };
 }
@@ -817,10 +853,26 @@ function evaluateBadges(entries) {
   });
   return { earned, st };
 }
-function titleFor(n) {
-  const ts = (state.config.titles || []).slice().sort((a, b) => a.badges - b.badges);
-  let name = '駆け出し'; ts.forEach(t => { if (n >= +t.badges) name = t.name; });
-  return { name, next: ts.find(t => n < +t.badges) };
+// 称号の段（config.yml の titles）。all: true は「出ているバッジを全部」。出ているバッジより多く要る段は外す
+function titleList(total) {
+  const ts = (state.config.titles || []).map(t => ({ name: t.name, badges: t.all ? total : +t.badges, all: !!t.all })).filter(t => t.name && Number.isFinite(t.badges) && (t.all || t.badges < total));
+  return [{ name: '駆け出し', badges: 0 }, ...ts.sort((a, b) => a.badges - b.badges || (a.all ? 1 : -1))];
+}
+function titleFor(n, total) {
+  const list = titleList(total); let cur = list[0]; list.forEach(t => { if (n >= t.badges) cur = t; });
+  return { name: cur.name, cur, next: list.find(t => n < t.badges), list };
+}
+// 削除したタスクだけが条件のバッジ（取っていないもの）は一覧と総数から外す。タスクを戻すと出てくる
+const taskHidden = id => { const x = stepById(id); return x ? (isHidden(x.parent.id) || isHidden(id)) : (isHidden(id) || !routineById(id)); };
+function badgeDormant(b, earned, seen = new Set()) {
+  if (earned[b.id] || seen.has(b.id)) return false; seen.add(b.id);
+  const c = b.condition || {}; const refs = [...(c.task ? [c.task] : []), ...(Array.isArray(c.tasks) ? c.tasks : [])];
+  if (refs.length && c.type !== 'custom' && refs.every(taskHidden)) return true;
+  if (c.type === 'custom' && ['fast', 'long', 'both_slots'].includes(c.key) && c.task && taskHidden(c.task)) return true;
+  if (c.type === 'custom' && c.key === 'tasks_day' && (c.tasks || []).some(taskHidden)) return true;
+  if (c.type === 'custom' && c.key === 'distinct' && c.place && !activeRoutines().some(r => isMenu(r) && (r.place || 'その他') === c.place)) return true;
+  if (c.type === 'combo') return (c.all_of || []).some(id => { const o = state.badges.find(x => x.id === id); return o && badgeDormant(o, earned, seen); });
+  return false;
 }
 function badgeTileHTML(b, when, m) {
   if (!when && b.secret) return '<div class="badge-tile locked secret"><div class="ic">❔</div><div class="nm">???</div><div class="ds">シークレット</div></div>';
@@ -832,22 +884,29 @@ function achievementsHTML(today, date, entries, all) {
   const { earned, st } = evaluateBadges(entries); state.earned = earned;
   // 獲得トーストの比較用は表示日に関係なく全記録で見る（過去日から今日へ戻っただけで「獲得」と出さない）
   state.earnedAll = date === today ? earned : evaluateBadges(all).earned;
-  const n = Object.keys(earned).length; const total = state.badges.length;
+  const shown = state.badges.filter(b => !badgeDormant(b, earned));
+  const n = Object.keys(earned).length; const total = shown.length;
   const bonus = state.badges.filter(b => earned[b.id]).reduce((s, b) => s + (+b.xp_bonus || TIER_XP[b.tier] || 10), 0);
   const xp = Object.values(st.xpByArea).reduce((s, v) => s + v, 0) + bonus;
-  const ttl = titleFor(n);
+  const ttl = titleFor(n, total);
   const levels = AREAS.map(a => { const x = st.xpByArea[a] || 0; const lv = levelOf(x); const lo = lv * lv * 100, hi = nextLevelXp(lv); const pct = Math.round((x - lo) / (hi - lo) * 100);
     return `<div class="lvl"><span class="a">${AREA_JA[a]}</span><span class="l">Lv${lv}</span><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span class="sub">${x}/${hi}</span></div>`; }).join('');
-  const measured = state.badges.map(b => ({ b, m: measure(b, st, earned, date) }));
+  const measured = shown.map(b => ({ b, m: measure(b, st, earned, date) }));
   const near = measured.filter(x => !earned[x.b.id] && !x.b.secret && x.m.t > 0).map(x => ({ ...x, r: Math.min(1, x.m.v / x.m.t) })).sort((a, b) => b.r - a.r || a.m.t - b.m.t).slice(0, 3);
   const recent = state.badges.filter(b => earned[b.id]).sort((a, b) => earned[b.id].localeCompare(earned[a.id])).slice(0, 3);
   const nearHtml = near.map(x => `<div class="near"><span class="ic">${x.b.icon}</span><span class="nm">${esc(x.b.name)}</span><div class="bar"><div class="fill" style="width:${Math.round(x.r * 100)}%"></div></div><span class="sub">${x.m.v}/${x.m.t}</span></div>`).join('');
   const recentHtml = recent.map(b => `<div class="near recent"><span class="ic">${b.icon}</span><span class="nm">${esc(b.name)} <span class="sub">${esc(b.desc || '')}</span></span><span class="sub when">${esc(earned[b.id].slice(5).replace('-', '/'))}</span></div>`).join('');
   let room = '';
   if (state.showTrophy) {
-    const cats = [...new Set(state.badges.map(b => b.cat || 'その他'))];
-    room = cats.map(cat => { const list = state.badges.filter(b => (b.cat || 'その他') === cat); const got = list.filter(b => earned[b.id]).length;
-      return `<h3 class="group">${esc(cat)} <span class="sub">${got}/${list.length}</span></h3><div class="badge-grid">${list.map(b => badgeTileHTML(b, earned[b.id], measured.find(x => x.b === b).m)).join('')}</div>`; }).join('');
+    // 称号の段（今の段を強調）と、分類のチップ（押すとその分類だけ）
+    const ladder = ttl.list.map(t => `<span class="tl${n >= t.badges ? ' got' : ''}${t === ttl.cur ? ' now' : ''}">${esc(t.name)}<b>${t.all ? '全部' : t.badges}</b></span>`).join('');
+    const cats = [...new Set(shown.map(b => b.cat || 'その他'))];
+    const cat = cats.includes(state.trophyCat) ? state.trophyCat : '';
+    const chips = [`<button class="chip${cat ? '' : ' is-on'}" data-act="trophy-cat" data-cat="">すべて ${n}/${total}</button>`, ...cats.map(c => {
+      const list = shown.filter(b => (b.cat || 'その他') === c); return `<button class="chip${cat === c ? ' is-on' : ''}" data-act="trophy-cat" data-cat="${esc(c)}">${esc(c)} ${list.filter(b => earned[b.id]).length}/${list.length}</button>`; })].join('');
+    room = `<h3 class="group">称号 <span class="sub">全 ${ttl.list.length} 段。バッジの数で上がる</span></h3><div class="ladder">${ladder}</div><div class="chips trophy-cats">${chips}</div>` +
+      (cat ? [cat] : cats).map(c => { const list = shown.filter(b => (b.cat || 'その他') === c); const got = list.filter(b => earned[b.id]).length;
+        return `<h3 class="group">${esc(c)} <span class="sub">${got}/${list.length}</span></h3><div class="badge-grid">${list.map(b => badgeTileHTML(b, earned[b.id], measured.find(x => x.b === b).m)).join('')}</div>`; }).join('');
   }
   return `<h2>🏆 実績${date !== today ? ` <span class="sub">${esc(date.slice(5).replace('-', '/'))} 時点</span>` : ''} <span class="sub">称号 <b>${esc(ttl.name)}</b>${ttl.next ? `（${esc(ttl.next.name)} まであと ${ttl.next.badges - n}）` : ''}</span></h2>
     <div class="stats"><div><b>${n}</b><span>/${total} バッジ</span></div><div><b>${xp.toLocaleString()}</b><span>XP</span></div><div><b>${st.streakBest}</b><span>最長連続日</span></div><div><b>${Math.round(st.weighted / 60)}</b><span>時間（換算）</span></div></div>
@@ -961,6 +1020,7 @@ $('#app').addEventListener('click', ev => {
     case 'chapter': openChapter(b.dataset.ch, false); break;
     case 'chapter-open': openChapter(b.dataset.ch, true); break;
     case 'trophy-toggle': state.showTrophy = !state.showTrophy; render(); break;
+    case 'trophy-cat': state.trophyCat = b.dataset.cat || ''; render(); break;
   }
 });
 

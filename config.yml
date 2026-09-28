@@ -26,10 +26,19 @@ pass:
 privacy:
   log_time: true                # false にすると記録に時刻（ts）を残さず日付だけにする
 
-titles:                         # 称号。獲得バッジ数で決まる（docs/badges.md）
-  - { badges: 5,  name: 見習い }
-  - { badges: 15, name: 家事人 }
-  - { badges: 30, name: 熟練 }
-  - { badges: 50, name: 師範 }
-  - { badges: 70, name: 家事の匠 }
-  - { badges: 90, name: 伝説 }
+titles:                         # 称号。獲得バッジ数で決まる（docs/badges.md）。0 個は「駆け出し」。all: true は出ているバッジを全部
+  - { badges: 5,   name: 見習い }
+  - { badges: 15,  name: 家事人 }
+  - { badges: 25,  name: 一人前 }
+  - { badges: 35,  name: 熟練 }
+  - { badges: 50,  name: 手練れ }
+  - { badges: 65,  name: 達人 }
+  - { badges: 80,  name: 師範 }
+  - { badges: 95,  name: 家事の匠 }
+  - { badges: 110, name: 名人 }
+  - { badges: 125, name: 暮らしの賢者 }
+  - { badges: 140, name: 家の守り神 }
+  - { badges: 155, name: 家事の英雄 }
+  - { badges: 170, name: 伝説 }
+  - { badges: 185, name: 神話 }
+  - { all: true,   name: 家事神 }

@@ -129,7 +129,10 @@ def load_basics():
 BADGE_TYPES = {"count", "streak", "weighted_total", "target_hit", "level", "first", "combo", "custom"}
 CUSTOM_KEYS = {"fast", "long", "both_slots", "trio", "day_entries", "morning_entries", "weekend_days", "early",
                "core_streak", "resume", "all_places", "everyday_weeks", "tip_stage", "best_week", "ramp_top",
-               "step_entries", "steps_complete"}
+               "step_entries", "steps_complete", "record_days", "since_first", "full_months", "seasons", "dow_cover",
+               "tasks_day", "distinct", "menu_count", "day_weighted", "light_days", "all_slots_days", "slot_total",
+               "tips_distinct", "fast_total", "on_date", "year_end"}
+BADGE_FIELDS = {"id", "name", "icon", "tier", "cat", "desc", "condition", "secret", "xp_bonus"}
 
 
 def load_badges(routines):
@@ -143,6 +146,7 @@ def load_badges(routines):
         fail("docs/badges.md に ```yaml ブロックが無い")
     badges = yaml.safe_load(m.group(1)) or []
     ids, rids = set(), {r["id"] for r in routines} | {st["id"] for r in routines for st in (r.get("steps") or [])}
+    places = {r.get("place") or "その他" for r in routines if (r.get("schedule") or {}).get("type") == "interval"}
     for b in badges:
         for key in ("id", "name", "icon", "cat", "condition"):
             if key not in b:
@@ -157,6 +161,15 @@ def load_badges(routines):
             fail(f"badges: {b['id']} の custom key {c.get('key')} は未対応")
         if c.get("kind") is not None and c["kind"] not in KINDS:
             fail(f"badges: {b['id']} の kind {c['kind']} は未対応")
+        extra = set(b) - BADGE_FIELDS
+        if extra:   # 説明文の半角カンマで yaml が切れると、余計なキーになって現れる
+            fail(f"badges: {b['id']} に知らないキー {sorted(extra)}（desc に半角カンマがないか）")
+        if c.get("key") == "distinct" and c.get("of") not in ("menu", "refill", "any"):
+            fail(f"badges: {b['id']} の distinct には of: menu / refill / any が要る")
+        if c.get("place") is not None and c["place"] not in places:
+            fail(f"badges: {b['id']} の place {c['place']} は掃除メニューに無い")
+        if c.get("key") == "slot_total" and c.get("slot") not in ("morning", "noon", "night"):
+            fail(f"badges: {b['id']} の slot は morning / noon / night")
         for tid in ([c["task"]] if c.get("task") else []) + list(c.get("tasks") or []):
             if tid not in rids:
                 fail(f"badges: {b['id']} が無いタスク {tid} を参照")
@@ -197,6 +210,9 @@ def main():
     for key in ("owner", "name"):
         if not (config.get("repo") or {}).get(key):
             fail(f"config.yml: repo.{key} がない")
+    for t in config.get("titles") or []:
+        if not t.get("name") or not (t.get("all") is True or isinstance(t.get("badges"), int)):
+            fail(f"config.yml: titles の各項目に name と badges（整数）か all: true が要る: {t}")
 
     if os.path.isdir(out):
         shutil.rmtree(out)
