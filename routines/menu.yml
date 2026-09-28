@@ -31,8 +31,15 @@
   est_minutes: 10
   load: { physical: 2, mental: 1, time_bound: 0 }
   checklist:
-    - クエン酸水を吹いて 5 分置く → スポンジ → 水気を拭く
-    - 仕上げに乾拭きすると曇らない
+    - 先に食器用洗剤かセスキで油膜を落とす（お湯で流す）
+    - クエン酸水（水 200ml に小さじ 1。落ちにくければ小さじ 2）を吹いて 5 分。全体が曇っているならペーパー＋ラップで 1〜2 時間
+    - 残った所はクリームクレンザーで線（ヘアライン）に沿ってこする。塩酸系・塩素系・ダイヤモンドパッドは使わない
+    - 水で流して乾拭き。毎晩の洗い物の最後に水気を拭くと戻りにくい
+  steps:
+    - { id: sink-degrease, title: 油膜を落とす（洗剤＋お湯）, est_minutes: 2 }
+    - { id: sink-citric, title: クエン酸を吹く・貼る, est_minutes: 3 }
+    - { id: sink-scrub, title: 残りをクレンザーで線に沿って, est_minutes: 4 }
+    - { id: sink-dry, title: 流して乾拭き, est_minutes: 1 }
 
 - id: kitchen-drain-pipe
   title: キッチン排水管にパイプ洗浄剤
