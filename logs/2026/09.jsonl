@@ -91,3 +91,4 @@
 {"date":"2026-09-28","backfill":true,"task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mulfyuiyap4a"}
 {"date":"2026-09-28","backfill":true,"task_id":"cooking-prep","title":"翌日分の仕込み","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":45,"weight":1.35,"weighted_minutes":60.8,"xp":61,"id":"mulfz08tlgki"}
 {"date":"2026-09-28","backfill":true,"task_id":"kitchen-counter","title":"コンロまわり・調理台を拭く","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1,"weighted_minutes":10,"xp":10,"tip_id":"cleaning-003","tip_practiced":true,"id":"mulfziiq0ppk"}
+{"date":"2026-09-28","backfill":true,"task_id":"refill-dish-soap","title":"食器用洗剤の詰め替え","area":"nameless","slot":"night","status":"done","mode":"full","actual_minutes":3,"weight":1,"weighted_minutes":3,"xp":3,"id":"mulg0czic2w3"}
