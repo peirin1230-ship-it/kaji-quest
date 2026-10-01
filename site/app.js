@@ -28,7 +28,7 @@ const SLOTS = [{ id: 'morning', ja: '朝', from: 4, to: 11 }, { id: 'noon', ja: 
 const SLOT_JA = Object.fromEntries(SLOTS.map(s => [s.id, s.ja]));
 const slotOfHour = h => { if (h < 4) h += 24; return (SLOTS.find(s => h >= s.from && h < s.to) || SLOTS[2]).id; };
 
-const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } }, shopFile: { sha: null, data: { items: [], recent: [] } }, shopDraft: '', shopFocus: false, trophyCat: '' };
+const state = { routines: [], config: {}, token: '', months: new Map(), streak: 0, busy: false, showMenu: false, tips: [], tipOffset: 0, showTips: false, viewDate: '', q: '', basics: [], openChapter: '', badges: [], earned: {}, showTrophy: false, openSteps: new Map(), showRefill: false, prefsFile: { sha: null, data: { hidden: [] } }, shopFile: { sha: null, data: { items: [], recent: [] } }, shopDraft: '', shopFocus: false, trophyCat: '', areaXp: {}, lvFocus: '', lvUp: [] };
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -324,6 +324,7 @@ function render() {
   const today = nowParts().date; const date = viewDate();
   const all = allEntries(); const entries = all.filter(e => e.date <= date);   // 表示日時点の状態を出す
   const todays = entries.filter(e => e.date === date);
+  state.areaXp = areaXpOf(entries);
   renderHeader(today, date);
   $('#progress').innerHTML = progressHTML(today, date, entries);
   $('#tasks').innerHTML = tasksHTML(date, todays, entries);
@@ -449,7 +450,7 @@ function taskRowHTML(r, sid, p) {
     meta = `${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分${tl ? ' ・ ' + tl : ''}`;
     btns = `<button class="ghost small" data-act="detail" data-slot="${sid}" data-min="${est}">詳細</button><button class="primary" data-act="done" data-slot="${sid}" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
   }
-  return `<li class="task${p.complete ? ' is-done' : ''}" data-id="${esc(r.id)}" data-slot="${sid}"><div class="main"><div class="title">${esc(r.title)}${r.core ? ' <span class="badge core">core</span>' : ''}</div><div class="meta">${meta}${sb.toggle}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
+  return `<li class="task has-rk ${rkOf(r.area)}${p.complete ? ' is-done' : ''}" data-id="${esc(r.id)}" data-slot="${sid}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)}${r.core ? ' <span class="badge core">core</span>' : ''}</div><div class="meta">${meta}${sb.toggle}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
 }
 function tasksHTML(date, todays, entries) {
   const due = activeRoutines().filter(r => dueToday(r, date));
@@ -498,7 +499,7 @@ function menuRowHTML(i, big) {
   const est = partial ? restMinutes(r, doneIds) : estOf(r);
   const meta = `${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分 ・ 目安 ${days}日ごと ・ ${when}${later}${sb.toggle}`;
   const btns = done ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : `<button class="ghost small" data-act="detail" data-min="${est}">詳細</button><button class="primary" data-act="done" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
-  return `<li class="task${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
+  return `<li class="task has-rk ${rkOf(r.area)}${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
 }
 function menuHTML(date, entries) {
   const items = menuItems(date, entries); if (!items.length) return '';
@@ -590,7 +591,7 @@ function quickHTML(todays) {
     const sum = Math.round(done.reduce((s, e) => s + (+e.weighted_minutes || 0), 0));
     const mins = Array.isArray(r.quick_minutes) && r.quick_minutes.length ? r.quick_minutes : [r.est_minutes];
     const chips = mins.map(m => `<button class="chip" data-act="quick" data-id="${esc(r.id)}" data-min="${+m}">${+m}分</button>`).join('');
-    return `<div class="quick-row"><div class="title">${esc(r.title)}${done.length ? ` <span class="badge">${done.length}回 ・ 換算 ${sum}分</span>` : ''}</div><div class="chips">${chips}<button class="chip ghost" data-act="detail" data-id="${esc(r.id)}">詳細</button></div></div>`;
+    return `<div class="quick-row has-rk ${rkOf(r.area)}"><div class="title">${gemHTML(r.area)}${esc(r.title)}${done.length ? ` <span class="badge">${done.length}回 ・ 換算 ${sum}分</span>` : ''}</div><div class="chips">${chips}<button class="chip ghost" data-act="detail" data-id="${esc(r.id)}">詳細</button></div></div>`;
   }).join('');
   return `<h2>後から記録 <span class="sub">終わってから 1 タップ。時間帯は今の時刻で自動</span></h2>${rows}`;
 }
@@ -615,7 +616,7 @@ function refillRowHTML(i) {
   const meta = `${when} ・ ${cyc}${later}${n ? ` ・ ${n} 回` : ''}`;
   const cart = `<button class="ghost tiny" data-act="shop-add" data-text="${esc(shopNameOf(r))}" aria-label="買い物メモへ" title="買い物メモへ">🛒</button>`;
   const btns = today ? `${cart}<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>` : `${cart}<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done" data-min="${+r.est_minutes || 3}">補充した</button>`;
-  return `<li class="task${today ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
+  return `<li class="task has-rk ${rkOf(r.area)}${today ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
 }
 function refillHTML(date, entries) {
   const items = refillItems(date, entries); if (!items.length) return '';
@@ -664,7 +665,7 @@ function renderSearch(date, todays, entries) {
   const rHtml = routines.map(r => {
     const done = todays.filter(e => e.task_id === r.id && EARNED.has(e.status)); const s = r.schedule || {};
     const kind = s.type === 'interval' ? `目安 ${s.days}日ごと` : s.type === 'manual' ? (isRefill(r) ? '補充' : '後から記録') : s.type === 'weekly' ? `毎週 ${s.day}` : '毎日';
-    return `<li class="task" data-id="${esc(r.id)}"><div class="main"><div class="title">${esc(r.title)}</div><div class="meta">${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ ${kind}${done.length ? ` ・ この日 ${done.length} 回` : ''}</div></div><div class="btns"><button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done">完了</button></div></li>`;
+    return `<li class="task has-rk ${rkOf(r.area)}" data-id="${esc(r.id)}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)}</div><div class="meta">${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ ${kind}${done.length ? ` ・ この日 ${done.length} 回` : ''}</div></div><div class="btns"><button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done">完了</button></div></li>`;
   }).join('');
   const html = (routines.length ? `<h3 class="group">タスク（${routines.length}）</h3><ul class="tasks">${rHtml}</ul>` : '')
     + (tips.length ? `<h3 class="group">コツ（${tips.length}）</h3>${tips.map(t => tipItemHTML(t, stats, true)).join('')}` : '')
@@ -676,7 +677,30 @@ function renderSearch(date, todays, entries) {
 // ---- バッジ・レベル・称号（docs/badges.md → data/badges.json）。記録から毎回計算する。取ったものは記録が残るかぎり残る ----
 const AREAS = ['dishes', 'cooking', 'cleaning', 'laundry', 'nameless'];
 const TIER_XP = { bronze: 10, silver: 30, gold: 100, platinum: 300, secret: 50 };
-const levelOf = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 100));         // §7: Lv = floor(sqrt(累計XP / 100))
+const levelOf = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 100));
+// レベルの段（色）。Lv0 初 / 1 銅 / 2 銀 / 3 金 / 4 白金 / 5 紅 / 6 蒼 / 7 翠 / 8 紫 / 9 以上 虹（色の値は style.css の --rk0〜8）
+const RANKS = ['初', '銅', '銀', '金', '白金', '紅', '蒼', '翠', '紫', '虹'];
+const rankIdx = lv => Math.max(0, Math.min(RANKS.length - 1, Math.floor(lv) || 0));
+const rankCls = lv => `rk${rankIdx(lv)}`;
+const rankName = lv => RANKS[rankIdx(lv)];
+const TIER_RANK = { bronze: 1, silver: 2, gold: 3, platinum: 4, secret: 8 };   // バッジの格も同じ色の言葉で
+const TIER_JA = { bronze: '銅', silver: '銀', gold: '金', platinum: '白金', secret: '秘' };
+const AREA_ICON = { dishes: '🧽', cooking: '🍳', cleaning: '🧹', laundry: '🧺', nameless: '✨' };
+const AREA_SHORT = { dishes: '洗い物', cooking: '料理', cleaning: '掃除', laundry: '洗濯', nameless: '名もなき' };
+const titleRank = (idx, len) => Math.round(idx * 9 / Math.max(1, len - 1));   // 称号の段を色の段に割り当てる
+// 領域ごとの累計 XP（statAdd と同じ数え方）。タスク行の色を実績より先に決めるために描画のはじめに計算する
+function areaXpOf(entries) {
+  const xp = {};
+  entries.forEach(e => {
+    if (!EARNED.has(e.status)) return;
+    const sx = stepById(e.task_id); const r = sx ? sx.parent : routineById(e.task_id); const area = e.area || (r && r.area) || 'nameless';
+    xp[area] = (xp[area] || 0) + (Number.isFinite(+e.xp) ? +e.xp : Math.round(+e.weighted_minutes || 0));
+  });
+  return xp;
+}
+const areaLv = area => levelOf((state.areaXp || {})[area] || 0);
+const rkOf = area => rankCls(areaLv(area));
+const gemHTML = area => { const lv = areaLv(area); return `<span class="gem ${rankCls(lv)}" title="${esc(AREA_JA[area] || area)} Lv${lv}（${rankName(lv)}）">Lv${lv}</span>`; };         // §7: Lv = floor(sqrt(累計XP / 100))
 const nextLevelXp = lv => (lv + 1) * (lv + 1) * 100;
 function newStats() {
   return { n: 0, byTask: {}, byArea: {}, weighted: 0, weightedByArea: {}, xpByArea: {}, days: new Set(), passDays: new Set(), coreDays: new Set(),
@@ -860,7 +884,7 @@ function titleList(total) {
 }
 function titleFor(n, total) {
   const list = titleList(total); let cur = list[0]; list.forEach(t => { if (n >= t.badges) cur = t; });
-  return { name: cur.name, cur, next: list.find(t => n < t.badges), list };
+  return { name: cur.name, cur, idx: list.indexOf(cur), next: list.find(t => n < t.badges), list };
 }
 // 削除したタスクだけが条件のバッジ（取っていないもの）は一覧と総数から外す。タスクを戻すと出てくる
 const taskHidden = id => { const x = stepById(id); return x ? (isHidden(x.parent.id) || isHidden(id)) : (isHidden(id) || !routineById(id)); };
@@ -875,31 +899,43 @@ function badgeDormant(b, earned, seen = new Set()) {
   return false;
 }
 function badgeTileHTML(b, when, m) {
-  if (!when && b.secret) return '<div class="badge-tile locked secret"><div class="ic">❔</div><div class="nm">???</div><div class="ds">シークレット</div></div>';
-  const pct = m.t ? Math.min(100, Math.round(m.v / m.t * 100)) : 0;
-  return `<div class="badge-tile ${when ? 'earned' : 'locked'} ${esc(b.tier || '')}"><div class="ic">${b.icon}</div><div class="nm">${esc(b.name)}</div><div class="ds">${esc(b.desc || '')}</div>${when ? `<div class="when">${esc(when.slice(0, 10).replace(/-/g, '/'))} 獲得</div>` : `<div class="bar mini"><div class="fill" style="width:${pct}%"></div></div><div class="when">${m.v}/${m.t}</div>`}</div>`;
+  if (!when && b.secret) return '<div class="badge-tile locked secret rk8"><span class="tier">秘</span><div class="ic">❔</div><div class="nm">???</div><div class="ds">シークレット</div></div>';
+  const pct = m.t ? Math.min(100, Math.round(m.v / m.t * 100)) : 0; const tj = TIER_JA[b.tier];
+  return `<div class="badge-tile ${when ? 'earned' : 'locked'} ${rankCls(TIER_RANK[b.tier] ?? 1)} ${esc(b.tier || '')}">${tj ? `<span class="tier">${tj}</span>` : ''}<div class="ic">${b.icon}</div><div class="nm">${esc(b.name)}</div><div class="ds">${esc(b.desc || '')}</div>${when ? `<div class="when">${esc(when.slice(0, 10).replace(/-/g, '/'))} 獲得</div>` : `<div class="bar mini"><div class="fill" style="width:${pct}%"></div></div><div class="when">${m.v}/${m.t}</div>`}</div>`;
 }
 function achievementsHTML(today, date, entries, all) {
   if (!state.badges.length) return '';
-  const { earned, st } = evaluateBadges(entries); state.earned = earned;
-  // 獲得トーストの比較用は表示日に関係なく全記録で見る（過去日から今日へ戻っただけで「獲得」と出さない）
-  state.earnedAll = date === today ? earned : evaluateBadges(all).earned;
+  const ev = evaluateBadges(entries); const { earned, st } = ev; state.earned = earned;
+  // 獲得トーストと昇段の比較用は、表示日に関係なく全記録で見る（過去日から今日へ戻っただけで「獲得」「昇段」と出さない）
+  const evAll = date === today ? ev : evaluateBadges(all);
+  state.earnedAll = evAll.earned;
+  state.lvAll = Object.fromEntries(AREAS.map(a => [a, levelOf(evAll.st.xpByArea[a] || 0)]));
+  state.titleAll = titleFor(Object.keys(evAll.earned).length, state.badges.filter(b => !badgeDormant(b, evAll.earned)).length);
   const shown = state.badges.filter(b => !badgeDormant(b, earned));
   const n = Object.keys(earned).length; const total = shown.length;
   const bonus = state.badges.filter(b => earned[b.id]).reduce((s, b) => s + (+b.xp_bonus || TIER_XP[b.tier] || 10), 0);
   const xp = Object.values(st.xpByArea).reduce((s, v) => s + v, 0) + bonus;
-  const ttl = titleFor(n, total);
-  const levels = AREAS.map(a => { const x = st.xpByArea[a] || 0; const lv = levelOf(x); const lo = lv * lv * 100, hi = nextLevelXp(lv); const pct = Math.round((x - lo) / (hi - lo) * 100);
-    return `<div class="lvl"><span class="a">${AREA_JA[a]}</span><span class="l">Lv${lv}</span><div class="bar"><div class="fill" style="width:${pct}%"></div></div><span class="sub">${x}/${hi}</span></div>`; }).join('');
+  const ttl = titleFor(n, total); const tRank = titleRank(ttl.idx, ttl.list.length);
+  // 称号の札: 段の番号・名前・次の称号までの進み
+  const lo = ttl.cur.badges, hi = ttl.next ? ttl.next.badges : lo; const tpct = ttl.next ? Math.round((n - lo) / Math.max(1, hi - lo) * 100) : 100;
+  const plate = `<div class="title-plate ${rankCls(tRank)}"><div class="tp-emblem"><small>第</small><b>${ttl.idx + 1}</b><small>段</small></div><div class="tp-main"><div class="tp-label">称号 ・ 全 ${ttl.list.length} 段</div><div class="tp-name">${esc(ttl.name)}</div><div class="bar tp-bar"><div class="fill" style="width:${tpct}%"></div></div><div class="tp-next">${ttl.next ? `次は「${esc(ttl.next.name)}」 あと ${ttl.next.badges - n} 個` : '最上段に到達'}</div></div></div>`;
+  const stats = `<div class="stats"><div class="stat"><span class="k">🏅 バッジ</span><b>${n}</b><span class="u">/${total}</span></div><div class="stat"><span class="k">✨ XP</span><b>${xp.toLocaleString()}</b></div><div class="stat"><span class="k">🔥 最長連続</span><b>${st.streakBest}</b><span class="u">日</span></div><div class="stat"><span class="k">⏱ 換算</span><b>${Math.round(st.weighted / 60)}</b><span class="u">時間</span></div></div>`;
+  // 領域のメダル: 輪は次の Lv までの進み、色は段。押すとその領域の詳しい数字
+  const info = AREAS.map(a => { const x = st.xpByArea[a] || 0; const lv = levelOf(x); const lo2 = lv * lv * 100, hi2 = nextLevelXp(lv); return { a, x, lv, hi: hi2, p: Math.round((x - lo2) / (hi2 - lo2) * 100) }; });
+  const focus = info.find(i => i.a === state.lvFocus) || info.slice().sort((p, q) => q.p - p.p)[0];
+  const medals = info.map(i => `<button class="medal ${rankCls(i.lv)}${i === focus ? ' is-focus' : ''}${state.lvUp.includes(i.a) ? ' is-up' : ''}" data-act="lv-focus" data-area="${i.a}" style="--p:${i.lv >= 9 ? 100 : i.p}" aria-label="${AREA_JA[i.a]} Lv${i.lv} ${rankName(i.lv)}"><span class="ring"><span class="core">${AREA_ICON[i.a]}</span></span><span class="lv">Lv${i.lv}<i>${rankName(i.lv)}</i></span><span class="nm">${AREA_SHORT[i.a]}</span></button>`).join('');
+  const detail = `<div class="medal-detail"><b>${AREA_JA[focus.a]}</b><span class="rank-chip ${rankCls(focus.lv)}">Lv${focus.lv} ${rankName(focus.lv)}</span><span>${focus.x.toLocaleString()} / ${focus.hi.toLocaleString()} XP</span><span>あと ${(focus.hi - focus.x).toLocaleString()} XP で</span><span class="rank-chip ${rankCls(focus.lv + 1)}">Lv${focus.lv + 1} ${rankName(focus.lv + 1)}</span></div>`;
+  const legend = `<div class="rank-legend" aria-label="レベルの色">${RANKS.map((k, i) => `<span class="${rankCls(i)}">${i === RANKS.length - 1 ? `Lv${i}+` : `Lv${i}`} ${k}</span>`).join('')}</div>`;
   const measured = shown.map(b => ({ b, m: measure(b, st, earned, date) }));
   const near = measured.filter(x => !earned[x.b.id] && !x.b.secret && x.m.t > 0).map(x => ({ ...x, r: Math.min(1, x.m.v / x.m.t) })).sort((a, b) => b.r - a.r || a.m.t - b.m.t).slice(0, 3);
   const recent = state.badges.filter(b => earned[b.id]).sort((a, b) => earned[b.id].localeCompare(earned[a.id])).slice(0, 3);
-  const nearHtml = near.map(x => `<div class="near"><span class="ic">${x.b.icon}</span><span class="nm">${esc(x.b.name)}</span><div class="bar"><div class="fill" style="width:${Math.round(x.r * 100)}%"></div></div><span class="sub">${x.m.v}/${x.m.t}</span></div>`).join('');
-  const recentHtml = recent.map(b => `<div class="near recent"><span class="ic">${b.icon}</span><span class="nm">${esc(b.name)} <span class="sub">${esc(b.desc || '')}</span></span><span class="sub when">${esc(earned[b.id].slice(5).replace('-', '/'))}</span></div>`).join('');
+  const tierRk = b => rankCls(TIER_RANK[b.tier] ?? 1);
+  const nearHtml = near.map(x => `<div class="near ${tierRk(x.b)}"><span class="bic">${x.b.icon}</span><span class="nm">${esc(x.b.name)}</span><div class="bar"><div class="fill" style="width:${Math.round(x.r * 100)}%"></div></div><span class="sub">${x.m.v}/${x.m.t}</span></div>`).join('');
+  const recentHtml = recent.map(b => `<div class="near recent ${tierRk(b)}"><span class="bic">${b.icon}</span><span class="nm">${esc(b.name)} <span class="sub">${esc(b.desc || '')}</span></span><span class="sub when">${esc(earned[b.id].slice(5).replace('-', '/'))}</span></div>`).join('');
   let room = '';
   if (state.showTrophy) {
-    // 称号の段（今の段を強調）と、分類のチップ（押すとその分類だけ）
-    const ladder = ttl.list.map(t => `<span class="tl${n >= t.badges ? ' got' : ''}${t === ttl.cur ? ' now' : ''}">${esc(t.name)}<b>${t.all ? '全部' : t.badges}</b></span>`).join('');
+    // 称号の段（色は段の格。今の段は塗りつぶし）と、分類のチップ（押すとその分類だけ）
+    const ladder = ttl.list.map((t, i) => `<span class="tl ${rankCls(titleRank(i, ttl.list.length))}${n >= t.badges ? ' got' : ''}${t === ttl.cur ? ' now' : ''}">${esc(t.name)}<b>${t.all ? '全部' : t.badges}</b></span>`).join('');
     const cats = [...new Set(shown.map(b => b.cat || 'その他'))];
     const cat = cats.includes(state.trophyCat) ? state.trophyCat : '';
     const chips = [`<button class="chip${cat ? '' : ' is-on'}" data-act="trophy-cat" data-cat="">すべて ${n}/${total}</button>`, ...cats.map(c => {
@@ -908,13 +944,27 @@ function achievementsHTML(today, date, entries, all) {
       (cat ? [cat] : cats).map(c => { const list = shown.filter(b => (b.cat || 'その他') === c); const got = list.filter(b => earned[b.id]).length;
         return `<h3 class="group">${esc(c)} <span class="sub">${got}/${list.length}</span></h3><div class="badge-grid">${list.map(b => badgeTileHTML(b, earned[b.id], measured.find(x => x.b === b).m)).join('')}</div>`; }).join('');
   }
-  return `<h2>🏆 実績${date !== today ? ` <span class="sub">${esc(date.slice(5).replace('-', '/'))} 時点</span>` : ''} <span class="sub">称号 <b>${esc(ttl.name)}</b>${ttl.next ? `（${esc(ttl.next.name)} まであと ${ttl.next.badges - n}）` : ''}</span></h2>
-    <div class="stats"><div><b>${n}</b><span>/${total} バッジ</span></div><div><b>${xp.toLocaleString()}</b><span>XP</span></div><div><b>${st.streakBest}</b><span>最長連続日</span></div><div><b>${Math.round(st.weighted / 60)}</b><span>時間（換算）</span></div></div>
-    <div class="levels">${levels}</div>
+  return `<h2>🏆 実績${date !== today ? ` <span class="sub">${esc(date.slice(5).replace('-', '/'))} 時点</span>` : ''} <span class="sub only-collapsed">称号 <b>${esc(ttl.name)}</b> ・ ${n}/${total}</span></h2>
+    ${plate}${stats}
+    <h3 class="group">領域のレベル <span class="sub">Lv が上がると色が変わる。押すと詳しく</span></h3><div class="medals">${medals}</div>${detail}${legend}
     ${near.length ? `<h3 class="group">あと少し</h3>${nearHtml}` : ''}
     ${recent.length ? `<h3 class="group">最近の獲得</h3>${recentHtml}` : ''}
     <button class="ghost small wide" data-act="trophy-toggle">${state.showTrophy ? '閉じる' : `トロフィールームを開く（全 ${total} 種）`}</button>${room}`;
 }
+
+// ---- 昇段と称号アップの演出 ----
+let celTimer;
+function celebrate(items) {
+  const box = $('#celebrate'); if (!box || !items.length) return;
+  const [main, ...more] = items;
+  const colors = ['--rk1', '--rk2', '--rk3', '--rk4', '--rk5', '--rk6', '--rk7', '--rk8'];
+  const confetti = [...Array(18)].map((_, i) => `<i class="cf" style="--x:${Math.round(Math.random() * 96)}%;--d:${(Math.random() * .5).toFixed(2)}s;--r:${Math.round(Math.random() * 360)}deg;--c:var(${colors[i % colors.length]})"></i>`).join('');
+  box.className = `celebrate ${main.rk}`;
+  box.innerHTML = `<div class="cel-card" role="status"><div class="cel-rays"></div>${confetti}<div class="cel-kicker">${esc(main.kicker)}</div><div class="cel-medal">${main.icon}</div><div class="cel-main">${main.html}</div><div class="cel-sub">${esc(main.sub)}</div>${more.length ? `<div class="cel-more">${more.map(m => `<div>${m.icon} ${esc(m.kicker === 'LEVEL UP' ? 'Lv アップ' : m.kicker)} ${m.html}</div>`).join('')}</div>` : ''}<div class="cel-close">タップで閉じる</div></div>`;
+  box.hidden = false;
+  clearTimeout(celTimer); celTimer = setTimeout(() => { box.hidden = true; }, 4200);
+}
+$('#celebrate').addEventListener('click', () => { $('#celebrate').hidden = true; });
 
 // ---- 操作 ----
 let toastTimer;
@@ -925,6 +975,7 @@ function toast(msg, isErr) {
 async function run(fn, okMsg) {
   if (state.busy) return;
   const before = state.loaded ? new Set(Object.keys(state.earnedAll || {})) : null; let ok = false;   // 初回読み込みでは過去の獲得を通知しない
+  const lvBefore = state.loaded ? { ...(state.lvAll || {}) } : null; const titleBefore = state.loaded ? state.titleAll : null;
   state.busy = true; render();
   try { await fn(); ok = true; }
   catch (e) { console.error(e); toast(e.message || String(e), true); }
@@ -933,6 +984,17 @@ async function run(fn, okMsg) {
     const news = before ? state.badges.filter(b => (state.earnedAll || {})[b.id] && !before.has(b.id)) : [];
     if (news.length) toast(`🏅 バッジ獲得: ${news.map(b => b.icon + ' ' + b.name).join('、')}${okMsg ? ' ・ ' + okMsg : ''}`);
     else if (ok && okMsg) toast(okMsg);
+    // 領域の Lv が上がった・称号が上がったら演出（記録を増やしたときだけ。取り消しや日付の移動では出さない）
+    if (ok && lvBefore && state.lvAll) {
+      const ups = AREAS.filter(a => (state.lvAll[a] || 0) > (lvBefore[a] || 0));
+      const items = ups.map(a => { const lv = state.lvAll[a]; return { rk: rankCls(lv), icon: AREA_ICON[a], kicker: 'LEVEL UP', html: `${esc(AREA_JA[a])} <span class="gem ${rankCls(lv)}">Lv${lv}</span>`, sub: rankIdx(lv) > rankIdx(lvBefore[a] || 0) ? `段の色が「${rankName(lvBefore[a] || 0)}」から「${rankName(lv)}」に変わった` : '虹のまま、さらに上へ' }; });
+      const tA = state.titleAll, tB = titleBefore;
+      if (tA && tB && tA.idx > tB.idx) items.push({ rk: rankCls(titleRank(tA.idx, tA.list.length)), icon: '👑', kicker: '称号アップ', html: esc(tA.name), sub: `「${tB.name}」から 1 段上がった` });
+      if (items.length) {
+        state.lvUp = ups; render(); celebrate(items);
+        setTimeout(() => { state.lvUp = []; }, 5000);
+      }
+    }
   }
 }
 function requireToken() { if (state.token) return true; toast('先に ⚙ でトークンを保存する', true); openSettings(); return false; }
@@ -1021,6 +1083,7 @@ $('#app').addEventListener('click', ev => {
     case 'chapter-open': openChapter(b.dataset.ch, true); break;
     case 'trophy-toggle': state.showTrophy = !state.showTrophy; render(); break;
     case 'trophy-cat': state.trophyCat = b.dataset.cat || ''; render(); break;
+    case 'lv-focus': state.lvFocus = b.dataset.area || ''; render(); break;
   }
 });
 
