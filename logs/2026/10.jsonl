@@ -1,1 +1,2 @@
 {"date":"2026-10-01","ts":"2026-10-01T07:18:45+09:00","task_id":"garbage-out","title":"ゴミを出す（収集日の朝）","area":"nameless","slot":"morning","status":"done","mode":"full","actual_minutes":5,"weight":1.2,"weighted_minutes":6,"xp":6,"id":"muoo357whrrc"}
+{"date":"2026-10-01","ts":"2026-10-01T19:09:45+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mupdhhfza5d0"}
