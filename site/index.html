@@ -3,86 +3,173 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#2f6f5e">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f1e6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1220" media="(prefers-color-scheme: dark)">
+<meta name="description" content="家事を続けるための、ひとり用の冒険帳。1 タップで記録して、レベルと称号が育つ。">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="kaji-quest">
-<title>kaji-quest</title>
+<meta name="apple-mobile-web-app-title" content="kaji quest">
+<title>kaji quest — 暮らしの冒険帳</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="preload" href="fonts/outfit.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/zen-maru-700.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
-  <div class="datebar">
-    <button class="icon-btn" id="btn-date-prev" aria-label="前の日">‹</button>
-    <input type="date" id="date-input" aria-label="日付">
-    <span class="dow" id="date-dow"></span>
-    <button class="icon-btn" id="btn-date-next" aria-label="次の日">›</button>
-    <button class="ghost small" id="btn-today" hidden>今日へ</button>
+<svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+  <symbol id="i-logo" viewBox="0 0 24 24"><path d="M3.5 11.2 12 4l8.5 7.2"/><path d="M5.8 9.6v9.9h12.4V9.6"/><path d="m12 11.2.95 1.95 2.15.3-1.55 1.5.37 2.12L12 16.06l-1.92 1.01.37-2.12-1.55-1.5 2.15-.3z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-sunrise" viewBox="0 0 24 24"><path d="M3 18.5h18"/><path d="M6.5 18.5a5.5 5.5 0 0 1 11 0"/><path d="M12 5v3.2M5.2 10.4l1.6 1.4M18.8 10.4l-1.6 1.4M2.8 15h1.6M19.6 15h1.6"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.8v2.1M12 19.1v2.1M2.8 12h2.1M19.1 12h2.1M5.5 5.5 7 7M17 17l1.5 1.5M5.5 18.5 7 17M17 7l1.5-1.5"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M19.6 14.6A7.8 7.8 0 1 1 9.4 4.4a6.3 6.3 0 0 0 10.2 10.2z"/><path d="M16.5 4.2v2.6M15.2 5.5h2.6" /></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.8" cy="10.8" r="6.3"/><path d="m20 20-4.6-4.6"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9.5M17.5 7H20M4 17h3.5M11.5 17H20"/><circle cx="15.5" cy="7" r="2"/><circle cx="9.5" cy="17" r="2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M19.5 11A7.5 7.5 0 0 0 6 6.6L4.2 8.4"/><path d="M4.2 4.2v4.2h4.2"/><path d="M4.5 13A7.5 7.5 0 0 0 18 17.4l1.8-1.8"/><path d="M19.8 19.8v-4.2h-4.2"/></symbol>
+  <symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m14.5 18-6-6 6-6"/></symbol>
+  <symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9.5 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9.5 6 6 6-6"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21.2c-3.8 0-6.5-2.6-6.5-6.3 0-2.6 1.5-4.6 3.1-6.3.25 1.7 1.1 2.8 2.3 3.3-.25-3.2 1.15-5.8 3.5-8.1.35 2.7 1.6 4.3 2.9 5.8 1.15 1.3 1.9 2.9 1.9 5.2 0 3.8-2.8 6.4-7.2 6.4z"/></symbol>
+  <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 3.8h8V9a4 4 0 0 1-8 0z"/><path d="M8 5.6H5.2v1.2A3.6 3.6 0 0 0 8.4 10.4M16 5.6h2.8v1.2a3.6 3.6 0 0 1-3.2 3.6"/><path d="M12 13v3.6M8.6 20.2h6.8M10 16.6h4l.6 3.6H9.4z"/></symbol>
+  <symbol id="i-broom" viewBox="0 0 24 24"><path d="M19.5 3.5 12.6 10.4"/><path d="M10.2 8.6 15.4 13.8l-2.3 2.3c-1.7 1.7-4.6 2.6-7.6 2.6 0-3 .9-5.9 2.6-7.6z"/><path d="M7.4 16.6 9.6 14.4M10.2 18l1.6-1.6"/></symbol>
+  <symbol id="i-pan" viewBox="0 0 24 24"><circle cx="10" cy="13" r="6.2"/><path d="M16.2 13H22"/><path d="M7.6 11.6a2.6 2.6 0 0 1 3-1.4"/></symbol>
+  <symbol id="i-dish" viewBox="0 0 24 24"><circle cx="10.5" cy="14" r="6.8"/><circle cx="10.5" cy="14" r="3.2"/><circle cx="18.6" cy="5.4" r="1.9"/><circle cx="14.6" cy="3.9" r="1.05"/></symbol>
+  <symbol id="i-washer" viewBox="0 0 24 24"><rect x="4.2" y="3" width="15.6" height="18" rx="3"/><circle cx="12" cy="13.2" r="4.4"/><path d="M7.8 6.6h2.6M15.6 6.6h.6"/><path d="M9.6 13.6c.9.9 3.9.9 4.8-.4" /></symbol>
+  <symbol id="i-sparkle" viewBox="0 0 24 24"><path d="M11 3.5c.6 4.3 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.7-6.4-7-7 4.3-.6 6.4-2.7 7-7z"/><path d="M18.6 15.2c.25 1.5.95 2.2 2.4 2.4-1.45.25-2.15.95-2.4 2.4-.25-1.45-.9-2.15-2.4-2.4 1.5-.2 2.15-.9 2.4-2.4z"/></symbol>
+  <symbol id="i-bulb" viewBox="0 0 24 24"><path d="M9.2 18h5.6M10.2 21h3.6"/><path d="M12 3a6 6 0 0 0-3.7 10.7c.65.55 1.05 1.25 1.15 2.05l.1.75h4.9l.1-.75c.1-.8.5-1.5 1.15-2.05A6 6 0 0 0 12 3z"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6.6C10.2 5.1 7.7 4.6 4 4.6v13.2c3.7 0 6.2.5 8 2 1.8-1.5 4.3-2 8-2V4.6c-3.7 0-6.2.5-8 2z"/><path d="M12 6.6v13.2"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3.1 2"/></symbol>
+  <symbol id="i-bottle" viewBox="0 0 24 24"><path d="M9.2 3h5.6M10.2 3v3.3L7.7 9.1A3 3 0 0 0 7 11v8a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-8a3 3 0 0 0-.7-1.9l-2.5-2.8V3"/><path d="M7 13.4h10"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><path d="M3 4h2.3l2.1 10.1a1.6 1.6 0 0 0 1.6 1.3h8.3a1.6 1.6 0 0 0 1.55-1.2L20.6 8H6.2"/><circle cx="9.6" cy="19.6" r="1.35"/><circle cx="17" cy="19.6" r="1.35"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20h16"/><path d="M7.5 16.5v-4M12 16.5V7.5M16.5 16.5V10"/></symbol>
+  <symbol id="i-list" viewBox="0 0 24 24"><path d="M9.5 6.5H20M9.5 12H20M9.5 17.5H20"/><path d="m3.6 6.4 1.2 1.2 2.1-2.4M3.6 11.9l1.2 1.2 2.1-2.4M4.4 17.5h1.6"/></symbol>
+  <symbol id="i-quest" viewBox="0 0 24 24"><path d="M6.5 3.5h9.8l2.2 2.2v14.8H6.5a1.5 1.5 0 0 1-1.5-1.5V5a1.5 1.5 0 0 1 1.5-1.5z"/><path d="m8.6 9.2 1.3 1.3 2.4-2.6M8.6 15l1.3 1.3 2.4-2.6M14.4 9.6h1.8M14.4 15.4h1.8"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.6 4.6 4.6L19.2 7.6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5.5v13M5.5 12h13"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="m6.5 6.5 11 11M17.5 6.5l-11 11"/></symbol>
+  <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></symbol>
+  <symbol id="i-dots" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V3.8M8 7.6l4-3.8 4 3.8"/><path d="M5 12.5v6A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-6"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6"/><path d="m6 7 1 12.4A1.6 1.6 0 0 0 8.6 21h6.8a1.6 1.6 0 0 0 1.6-1.6L18 7"/><path d="M9 7V4.6h6V7"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.6"/><path d="M10 9v6M14 9v6"/></symbol>
+  <symbol id="i-arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+</svg>
+<a class="skip" href="#tasks">タスクへ移動</a>
+
+<header class="hero" id="hero" data-slot="morning">
+  <div class="sky" aria-hidden="true">
+    <div class="stars"></div>
+    <div class="orb"></div>
   </div>
-  <div class="tools">
-    <span class="streak" id="streak">🔥 —</span>
-    <button class="icon-btn" id="btn-reload" aria-label="更新" title="更新">↻</button>
-    <button class="icon-btn" id="btn-settings" aria-label="設定" title="設定">⚙️</button>
+  <div class="hero-in">
+    <div class="appbar">
+      <a class="brand" href="#hero" aria-label="kaji quest のいちばん上へ"><span class="logo"><svg class="ic"><use href="#i-logo"/></svg></span><span class="wordmark">kaji quest</span></a>
+      <div class="tools">
+        <span class="streak" id="streak" title="連続で記録した日数">—</span>
+        <button class="icon-btn" id="btn-reload" aria-label="更新" title="更新"><svg class="ic"><use href="#i-refresh"/></svg></button>
+        <button class="icon-btn" id="btn-settings" aria-label="設定" title="設定"><svg class="ic"><use href="#i-sliders"/></svg></button>
+      </div>
+    </div>
+    <div class="datebar">
+      <button class="icon-btn" id="btn-date-prev" aria-label="前の日"><svg class="ic"><use href="#i-chev-l"/></svg></button>
+      <label class="date-pick" id="date-pick" title="日付を選ぶ"><span class="date-big" id="date-big">—</span><span class="dow" id="date-dow"></span><svg class="ic cal"><use href="#i-calendar"/></svg><input type="date" id="date-input" aria-label="日付を選ぶ"></label>
+      <button class="icon-btn" id="btn-date-next" aria-label="次の日"><svg class="ic"><use href="#i-chev-r"/></svg></button>
+      <button class="today-btn" id="btn-today" hidden>今日へ</button>
+    </div>
+    <h1 class="greet"><span id="greet">kaji quest</span><small id="greet-sub">暮らしの冒険帳</small></h1>
+    <svg class="town" aria-hidden="true" focusable="false" viewBox="0 0 1200 64" preserveAspectRatio="xMidYMax slice"><path class="town-b" d="M-10 15.1h35.5v48.9h-35.5zM30 20.3h37.1v43.7h-37.1zM39.2 16.3h8.2v4h-8.2zM70.3 17.3h50.1v46.7h-50.1zM126.8 21h40v43h-40zM176.7 23h55.4v41h-55.4zM236 23.7h59.7v40.3h-59.7zM250.9 19.7h13.1v4h-13.1zM305.2 27.4h49v36.6h-49zM363.2 20h51.3v44h-51.3zM416 25.1h62.4v38.9h-62.4zM431.6 21.1h13.7v4h-13.7zM483.3 22.6h60.6v41.4h-60.6zM549.9 31.4h30.4v32.6h-30.4zM584.5 20.3h52.3v43.7h-52.3zM644.9 24.3h63.7v39.7h-63.7zM715.7 27.9h30.9v36.1h-30.9zM748.6 24.7h33.8v39.3h-33.8zM786.4 23.7h59.2v40.3h-59.2zM846.3 20.7h44.4v43.3h-44.4zM898.2 26.3h32.5v37.7h-32.5zM920.9 17.3h1.2v9h-1.2zM931.4 29.8h35.4v34.2h-35.4zM971.2 13.1h49.8v50.9h-49.8zM1030.5 25.3h56.5v38.7h-56.5zM1044.6 21.3h12.4v4h-12.4zM1094.1 25.7h34.2v38.3h-34.2zM1118.1 16.7h1.2v9h-1.2zM1129.3 23.7h31.4v40.3h-31.4zM1169.5 33.5h50.5v30.5h-50.5zM1182.1 29.5h11.1v4h-11.1z"/><path class="town-w" d="M1 36.1h2.6v3.2h-2.6zM15 28.1h2.6v3.2h-2.6zM34 33.3h2.6v3.2h-2.6zM34 41.3h2.6v3.2h-2.6zM41 25.3h2.6v3.2h-2.6zM41 41.3h2.6v3.2h-2.6zM48 25.3h2.6v3.2h-2.6zM55 25.3h2.6v3.2h-2.6zM55 41.3h2.6v3.2h-2.6zM74.3 30.3h2.6v3.2h-2.6zM81.3 22.3h2.6v3.2h-2.6zM88.3 22.3h2.6v3.2h-2.6zM88.3 38.3h2.6v3.2h-2.6zM95.3 22.3h2.6v3.2h-2.6zM102.3 22.3h2.6v3.2h-2.6zM109.3 30.3h2.6v3.2h-2.6zM130.8 26h2.6v3.2h-2.6zM137.8 26h2.6v3.2h-2.6zM137.8 42h2.6v3.2h-2.6zM151.8 26h2.6v3.2h-2.6zM151.8 34h2.6v3.2h-2.6zM187.7 36h2.6v3.2h-2.6zM254 28.7h2.6v3.2h-2.6zM261 36.7h2.6v3.2h-2.6zM268 28.7h2.6v3.2h-2.6zM282 28.7h2.6v3.2h-2.6zM309.2 40.4h2.6v3.2h-2.6zM374.2 25h2.6v3.2h-2.6zM374.2 33h2.6v3.2h-2.6zM381.2 33h2.6v3.2h-2.6zM388.2 25h2.6v3.2h-2.6zM388.2 41h2.6v3.2h-2.6zM395.2 25h2.6v3.2h-2.6zM420 30.1h2.6v3.2h-2.6zM420 38.1h2.6v3.2h-2.6zM427 30.1h2.6v3.2h-2.6zM427 38.1h2.6v3.2h-2.6zM462 38.1h2.6v3.2h-2.6zM469 30.1h2.6v3.2h-2.6zM588.5 41.3h2.6v3.2h-2.6zM609.5 25.3h2.6v3.2h-2.6zM655.9 29.3h2.6v3.2h-2.6zM662.9 37.3h2.6v3.2h-2.6zM669.9 29.3h2.6v3.2h-2.6zM676.9 29.3h2.6v3.2h-2.6zM683.9 29.3h2.6v3.2h-2.6zM726.7 40.9h2.6v3.2h-2.6zM733.7 32.9h2.6v3.2h-2.6zM759.6 29.7h2.6v3.2h-2.6zM766.6 37.7h2.6v3.2h-2.6zM804.4 36.7h2.6v3.2h-2.6zM818.4 28.7h2.6v3.2h-2.6zM850.3 25.7h2.6v3.2h-2.6zM850.3 33.7h2.6v3.2h-2.6zM857.3 25.7h2.6v3.2h-2.6zM864.3 25.7h2.6v3.2h-2.6zM871.3 33.7h2.6v3.2h-2.6zM871.3 41.7h2.6v3.2h-2.6zM902.2 39.3h2.6v3.2h-2.6zM935.4 42.8h2.6v3.2h-2.6zM942.4 42.8h2.6v3.2h-2.6zM949.4 34.8h2.6v3.2h-2.6zM956.4 34.8h2.6v3.2h-2.6zM956.4 42.8h2.6v3.2h-2.6zM975.2 18.1h2.6v3.2h-2.6zM982.2 42.1h2.6v3.2h-2.6zM989.2 18.1h2.6v3.2h-2.6zM989.2 34.1h2.6v3.2h-2.6zM1003.2 26.1h2.6v3.2h-2.6zM1010.2 18.1h2.6v3.2h-2.6zM1010.2 42.1h2.6v3.2h-2.6zM1048.5 30.3h2.6v3.2h-2.6zM1055.5 38.3h2.6v3.2h-2.6zM1062.5 30.3h2.6v3.2h-2.6zM1105.1 30.7h2.6v3.2h-2.6zM1119.1 30.7h2.6v3.2h-2.6z"/><path class="town-f" d="M-10 56h1220v8h-1220zM-6 64V45.8l22.9 -12.9l22.9 12.9V64zM25.2 35.5h3.5v6.4h-3.5zM45.3 50a6.7 6.7 0 1 1 13.4 0a6.7 6.7 0 1 1 -13.4 0zM51 50h2v8h-2zM62 41.1h36.6v22.9h-36.6zM60 49.1h40.6v2h-40.6zM104.9 64V47.7l21.8 -11.5l21.8 11.5V64zM161.9 64V46.8l24.2 -12.7l24.2 12.7V64zM215.9 39.4h39.7v24.6h-39.7zM213.9 47.4h43.7v2h-43.7zM259 50a7.9 7.9 0 1 1 15.9 0a7.9 7.9 0 1 1 -15.9 0zM265.9 50h2v8h-2zM277.8 50a6.1 6.1 0 1 1 12.2 0a6.1 6.1 0 1 1 -12.2 0zM282.9 50h2v8h-2zM295.5 64V47.7l15.6 -10.3l15.6 10.3V64zM316.8 39.5h3.5v5.1h-3.5zM331.2 64V40.7l18.5 -12.8l18.5 12.8V64zM356.4 30.5h3.5v6.4h-3.5zM376 64V40.5l20.1 -12.1l20.1 12.1V64zM403.3 30.8h3.5v6.1h-3.5zM422.5 64V40.2l22 -13.4l22 13.4V64zM480.2 36.9h36.8v27.1h-36.8zM478.2 44.9h40.8v2h-40.8zM530 64V45.1l19.6 -11.4l19.6 11.4V64zM576.1 64V44.2l15.4 -12.8l15.4 12.8V64zM597.1 34h3.5v6.4h-3.5zM612.7 64V47.6l19.7 -9.1l19.7 9.1V64zM662.2 50a6.6 6.6 0 1 1 13.3 0a6.6 6.6 0 1 1 -13.3 0zM667.8 50h2v8h-2zM677.8 38.9h32.7v25.1h-32.7zM675.8 46.9h36.7v2h-36.7zM723.6 36.2h45.5v27.8h-45.5zM721.6 44.2h49.5v2h-49.5zM774.4 37h49.6v27h-49.6zM772.4 45h53.6v2h-53.6zM834.1 64V47.8l18.9 -13.2l18.9 13.2V64zM859.8 37.2h3.5v6.6h-3.5zM877.7 38.1h48.8v25.9h-48.8zM875.7 46.1h52.8v2h-52.8zM936.2 38.1h33.7v25.9h-33.7zM934.2 46.1h37.7v2h-37.7zM981.4 42.1h51.7v21.9h-51.7zM979.4 50.1h55.7v2h-55.7zM1046.2 50a8.9 8.9 0 1 1 17.7 0a8.9 8.9 0 1 1 -17.7 0zM1054.1 50h2v8h-2zM1069.3 64V46.9l15.1 -9.8l15.1 9.8V64zM1089.9 39.1h3.5v4.9h-3.5zM1113.4 50a6.8 6.8 0 1 1 13.7 0a6.8 6.8 0 1 1 -13.7 0zM1119.2 50h2v8h-2zM1129.9 38.4h40v25.6h-40zM1127.9 46.4h44v2h-44zM1179.8 50a7.1 7.1 0 1 1 14.3 0a7.1 7.1 0 1 1 -14.3 0zM1186 50h2v8h-2zM1196.4 64V46l18.8 -11.9l18.8 11.9V64z"/><path class="town-w" d="M22.6 48.8h4v4.5h-4zM67 54.1h26.6v4h-26.6zM117.5 50.7h4v4.5h-4zM132 50.7h4v4.5h-4zM176 49.8h4v4.5h-4zM192.1 49.8h4v4.5h-4zM220.9 52.4h29.7v4h-29.7zM309.2 50.7h4v4.5h-4zM347.7 43.7h4v4.5h-4zM387.4 43.5h4v4.5h-4zM400.7 43.5h4v4.5h-4zM435.2 43.2h4v4.5h-4zM449.9 43.2h4v4.5h-4zM485.2 49.9h26.8v4h-26.8zM547.6 48.1h4v4.5h-4zM589.5 47.2h4v4.5h-4zM682.8 51.9h22.7v4h-22.7zM728.6 49.2h35.5v4h-35.5zM779.4 50h39.6v4h-39.6zM851 50.8h4v4.5h-4zM882.7 51.1h38.8v4h-38.8zM941.2 51.1h23.7v4h-23.7zM986.4 55.1h41.7v4h-41.7zM1082.4 49.9h4v4.5h-4zM1134.9 51.4h30v4h-30zM1213.2 49h4v4.5h-4z"/></svg>
+    <section class="hero-card" id="progress" aria-label="今週の進みと次の一手"><div class="skel skel-hero"></div></section>
   </div>
 </header>
 
 <nav class="nav" id="nav" aria-label="ページ内の移動">
-  <button class="nav-chip nav-date" id="nav-date" data-go="top" title="一番上へ">—</button>
-  <button class="nav-chip" data-go="slot-morning" data-fallback="tasks">朝</button>
-  <button class="nav-chip" data-go="slot-noon" data-fallback="tasks">昼</button>
-  <button class="nav-chip" data-go="slot-night" data-fallback="tasks">夜</button>
-  <button class="nav-chip" data-go="menu">メニュー</button>
-  <button class="nav-chip" data-go="tip">コツ</button>
-  <button class="nav-chip" data-go="basics">教科書</button>
-  <button class="nav-chip" data-go="quick">後から記録</button>
-  <button class="nav-chip" data-go="refill">補充</button>
-  <button class="nav-chip" data-go="shopping">買い物</button>
-  <button class="nav-chip" data-go="week">今週</button>
-  <button class="nav-chip" data-go="achievements">実績</button>
-  <button class="nav-chip" data-go="today-log">記録</button>
+  <div class="nav-in">
+    <button class="nav-chip nav-date" id="nav-date" data-go="top" title="いちばん上へ">—</button>
+    <button class="nav-chip" data-go="slot-morning" data-fallback="tasks"><svg class="ic"><use href="#i-sunrise"/></svg>朝</button>
+    <button class="nav-chip" data-go="slot-noon" data-fallback="tasks"><svg class="ic"><use href="#i-sun"/></svg>昼</button>
+    <button class="nav-chip" data-go="slot-night" data-fallback="tasks"><svg class="ic"><use href="#i-moon"/></svg>夜</button>
+    <button class="nav-chip" data-go="menu"><svg class="ic"><use href="#i-broom"/></svg>メニュー</button>
+    <button class="nav-chip" data-go="tip"><svg class="ic"><use href="#i-bulb"/></svg>コツ</button>
+    <button class="nav-chip" data-go="basics"><svg class="ic"><use href="#i-book"/></svg>教科書</button>
+    <button class="nav-chip" data-go="quick"><svg class="ic"><use href="#i-clock"/></svg>後から記録</button>
+    <button class="nav-chip" data-go="refill"><svg class="ic"><use href="#i-bottle"/></svg>補充</button>
+    <button class="nav-chip" data-go="shopping"><svg class="ic"><use href="#i-cart"/></svg>買い物</button>
+    <button class="nav-chip" data-go="week"><svg class="ic"><use href="#i-chart"/></svg>今週</button>
+    <button class="nav-chip" data-go="achievements"><svg class="ic"><use href="#i-trophy"/></svg>実績</button>
+    <button class="nav-chip" data-go="today-log"><svg class="ic"><use href="#i-list"/></svg>記録</button>
+  </div>
 </nav>
+<script>
+  /* 最初の描画から「今の時刻の空・あいさつ・日付（見出しとナビ）」を出す（app.js の読み込みを待たない）。
+     時間帯の区切り（4・11・17 時）、夕焼け（16〜19 時）、弧、あいさつは app.js の SLOTS / renderSky と同じにしておく */
+  (function () {
+    try {
+      var p = {}; new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+      var h = +p.hour + p.minute / 60, hh = +p.hour < 4 ? +p.hour + 24 : +p.hour;
+      var slot = hh < 11 ? 'morning' : hh < 17 ? 'noon' : 'night', sky = h >= 16 && h < 19 ? 'dusk' : slot;
+      var hero = document.getElementById('hero'); hero.dataset.slot = slot; hero.dataset.sky = sky;
+      var f = h >= 5 && h < 19 ? (h - 5) / 14 : ((h - 19) % 24 + 24) % 24 / 10;
+      hero.style.setProperty('--fx', f.toFixed(3)); hero.style.setProperty('--fy', Math.sin(Math.PI * f).toFixed(3));
+      var G = { morning: ['おはよう', '小さく始めれば、それで十分。'], noon: ['こんにちは', 'ひと息ついたら、一つだけ。'], night: ['おつかれさま', '今日の分は、ここまででも大丈夫。'] }[slot];
+      document.getElementById('greet').textContent = G[0]; document.getElementById('greet-sub').textContent = G[1];
+      document.getElementById('date-big').textContent = +p.month + '.' + +p.day;
+      var dow = '日月火水木金土'.charAt(new Date(p.year + '-' + p.month + '-' + p.day + 'T00:00:00Z').getUTCDay());
+      document.getElementById('date-dow').textContent = dow;
+      document.getElementById('nav-date').innerHTML = '<svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg>' + +p.month + '/' + +p.day + '（' + dow + '）';
+      var TOP = { morning: ['#ffc9a3', '#4a2e3a'], noon: ['#8ecbff', '#1b3f70'], dusk: ['#f59a78', '#3b2350'], night: ['#161b4a', '#060920'] }[sky];
+      document.querySelectorAll('meta[name="theme-color"]').forEach(function (el, i) { el.setAttribute('content', TOP[i] || TOP[0]); });
+    } catch (e) {}
+  })();
+</script>
 
 <main id="app">
-  <section class="card" id="search">
-    <input type="search" id="q" placeholder="検索: タスク・メニュー・コツ・記録" autocomplete="off" autocapitalize="off">
-    <div id="search-results"></div>
-  </section>
-  <section class="card" id="progress"></section>
-  <section class="card" id="tasks"><p class="empty">読み込み中…</p></section>
-  <section class="card" id="menu"></section>
-  <section class="card" id="tip"></section>
-  <section class="card" id="basics"></section>
-  <section class="card" id="quick"></section>
-  <section class="card" id="refill"></section>
-  <section class="card" id="shopping"></section>
-  <section class="card" id="week"></section>
-  <section class="card" id="achievements"></section>
-  <section class="card" id="today-log"></section>
+  <div class="col col-a">
+    <section class="search" id="search" role="search">
+      <label class="search-box"><svg class="ic"><use href="#i-search"/></svg><input type="search" id="q" placeholder="タスク・コツ・記録を検索" aria-label="検索" autocomplete="off" autocapitalize="off"></label>
+      <div id="search-results"></div>
+    </section>
+    <section class="card" id="tasks"><div class="skel skel-title"></div><div class="skel skel-row"></div><div class="skel skel-row"></div><div class="skel skel-row"></div></section>
+    <section class="card" id="menu"></section>
+    <section class="card" id="quick"></section>
+    <section class="card" id="refill"></section>
+    <section class="card" id="shopping"></section>
+  </div>
+  <div class="col col-b">
+    <section class="card" id="achievements"></section>
+    <section class="card" id="week"></section>
+    <section class="card" id="tip"></section>
+    <section class="card" id="basics"></section>
+    <section class="card" id="today-log"></section>
+  </div>
 </main>
 
 <footer class="foot">
-  <a id="repo-link" href="#" target="_blank" rel="noopener">リポジトリ</a> ・
-  <a id="supplies-link" href="#" target="_blank" rel="noopener">洗剤と道具</a> ・
-  <a id="spec-link" href="#" target="_blank" rel="noopener">仕様書</a>
+  <div class="foot-brand"><svg class="ic"><use href="#i-logo"/></svg>kaji quest <span>暮らしの冒険帳</span></div>
+  <div class="foot-links">
+    <a id="repo-link" href="#" target="_blank" rel="noopener">リポジトリ</a>
+    <a id="supplies-link" href="#" target="_blank" rel="noopener">洗剤と道具</a>
+    <a id="spec-link" href="#" target="_blank" rel="noopener">仕様書</a>
+  </div>
 </footer>
 
-<dialog id="dlg-detail">
+<dialog id="dlg-detail" class="sheet" aria-labelledby="detail-title">
+  <div class="grab" aria-hidden="true"></div>
   <h3><span id="detail-title"></span> <span class="sub" id="detail-w"></span></h3>
   <div class="field" id="detail-check-wrap">
     <label>やること</label>
     <ul class="check" id="detail-check"></ul>
   </div>
   <div class="field" id="detail-tip-wrap" hidden>
-    <label>💡 コツ</label>
+    <label><svg class="ic"><use href="#i-bulb"/></svg> コツ</label>
     <div class="tip" id="detail-tip"></div>
     <label class="chk"><input type="checkbox" id="detail-tip-practiced"> このコツを実践した</label>
   </div>
   <div class="field">
     <label>所要時間</label>
     <div class="chips" id="detail-minutes"></div>
-    <input type="number" id="detail-custom" inputmode="numeric" min="1" max="600" placeholder="それ以外なら分を入力">
+    <input type="number" id="detail-custom" inputmode="numeric" min="1" max="600" placeholder="それ以外なら分を入力" aria-label="所要時間（分）">
   </div>
   <div class="field">
     <label>時間帯</label>
@@ -93,10 +180,10 @@
     <div class="chips" id="detail-mood"></div>
   </div>
   <div class="field">
-    <label>気づき（1行・任意）</label>
+    <label for="detail-note">気づき（1行・任意）</label>
     <input type="text" id="detail-note" maxlength="140" placeholder="先に鍋を浸けておくと早い">
   </div>
-  <div class="actions">
+  <div class="actions sheet-actions">
     <button type="button" class="ghost" id="detail-cancel">やめる</button>
     <button type="button" class="ghost" id="detail-partial">70点で完了</button>
     <button type="button" class="primary" id="detail-done">完了</button>
@@ -104,7 +191,7 @@
   <div class="danger-row">
     <button type="button" class="ghost tiny danger" id="detail-delete">このタスクを削除…</button>
     <div class="delete-panel" id="detail-delete-panel" hidden>
-      <p class="help small">ページから消すだけで、これまでの記録は残る。⚙ の「削除したタスク」からいつでも戻せる。</p>
+      <p class="help small">ページから消すだけで、これまでの記録は残る。設定の「削除したタスク」からいつでも戻せる。</p>
       <div class="actions left">
         <button type="button" class="ghost small" id="detail-delete-slot" hidden>この欄からだけ消す</button>
         <button type="button" class="ghost small danger" id="detail-delete-all">削除（記録は残る）</button>
@@ -114,14 +201,15 @@
   </div>
 </dialog>
 
-<dialog id="dlg-settings">
-  <h3>設定</h3>
+<dialog id="dlg-settings" class="sheet" aria-labelledby="settings-title">
+  <div class="grab" aria-hidden="true"></div>
+  <h3 id="settings-title">設定</h3>
   <p class="help">記録を書き込むには GitHub のトークンが要る（初回だけ）。<br>
     <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Fine-grained token を作る</a>
     → Repository access: <b>Only select repositories → kaji-quest</b> ／ Permissions: <b>Contents → Read and write</b></p>
   <label class="field-label" for="token">トークン</label>
   <input id="token" type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="github_pat_…">
-  <div class="status" id="settings-status"></div>
+  <div class="status" id="settings-status" role="status"></div>
   <div class="actions">
     <button type="button" class="ghost" id="settings-close">閉じる</button>
     <button type="button" class="ghost" id="settings-test">確認</button>
@@ -135,7 +223,7 @@
 </dialog>
 
 <div id="celebrate" class="celebrate" hidden></div>
-<div id="toast" class="toast" hidden></div>
-<script src="app.js"></script>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js" defer></script>
 </body>
 </html>

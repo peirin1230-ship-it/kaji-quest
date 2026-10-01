@@ -37,13 +37,23 @@ const round1 = n => Math.round(n * 10) / 10;
 const round2 = n => Math.round(n * 100) / 100;
 const md = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');   // 太字と改行だけの最小 Markdown
 const norm = s => String(s || '').normalize('NFKC').toLowerCase();
+// アイコン（index.html の <symbol id="i-…">）と、カードの見出し（アイコン・題・補足）
+const ic = (name, cls = '') => `<svg class="ic${cls ? ' ' + cls : ''}" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+const head = (icon, title, sub = '', after = '') => `<h2><span class="h-ic">${ic(icon)}</span><span class="h-t">${title}</span>${sub ? ` <span class="sub">${sub}</span>` : ''}${after}</h2>`;
+const AREA_SVG = { dishes: 'dish', cooking: 'pan', cleaning: 'broom', laundry: 'washer', nameless: 'sparkle' };
+const SLOT_ICON = { morning: 'sunrise', noon: 'sun', night: 'moon' };
+// 行の左の丸いチェック。押すと完了。終わっていれば塗りつぶし。p は手順の進み（%）
+const tickHTML = (done, attrs, label, p = 0) => done ? `<span class="tick-btn is-on" role="img" aria-label="${esc(label)}">${ic('check')}</span>` : `<button class="tick-btn" ${attrs} style="--p:${p}" aria-label="${esc(label)}">${ic('check')}</button>`;
+// 行の名前。押すと詳細（::after で行全体に広げる。左の丸と右のボタンはその上）。inner は段の札・名前・札
+const ttBtn = (inner, attrs = '', cls = 'tt') => `<button class="${cls}" data-act="detail"${attrs ? ' ' + attrs : ''} aria-haspopup="dialog">${inner}</button>`;
+const ttIn = (r, extra = '') => `${gemHTML(r.area)}<span class="tx">${esc(r.title)}</span>${extra}`;
 
 // ---- 日付（すべて JST の暦日で扱う。端末のタイムゾーンに依存しない） ----
 function nowParts(d = new Date()) {
   const f = new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' });
   const p = Object.fromEntries(f.formatToParts(d).map(x => [x.type, x.value]));
   const date = `${p.year}-${p.month}-${p.day}`;
-  return { date, hour: +p.hour, iso: `${date}T${p.hour}:${p.minute}:${p.second}+09:00` };
+  return { date, hour: +p.hour, minute: +p.minute, iso: `${date}T${p.hour}:${p.minute}:${p.second}+09:00` };
 }
 const toUTC = ds => new Date(ds + 'T00:00:00Z');
 const fmtDate = d => d.toISOString().slice(0, 10);
@@ -271,13 +281,13 @@ function shoppingHTML() {
   const items = shopItems(); const open = items.filter(i => !i.done), done = items.filter(i => i.done);
   const inList = new Set(items.map(i => i.text));
   const chips = shopRecent().filter(t => !inList.has(t)).slice(0, 12).map(t => `<button class="chip" data-act="shop-add" data-text="${esc(t)}">${esc(t)}</button>`).join('');
-  const row = i => `<li class="shop-item${i.done ? ' is-done' : ''}" data-sid="${esc(i.id)}"><button class="tick" data-act="shop-toggle" aria-label="${i.done ? '戻す' : '買った'}">${i.done ? '✓' : ''}</button><button class="shop-name" data-act="shop-toggle">${esc(i.text)}</button><button class="ghost tiny" data-act="shop-remove" aria-label="消す">×</button></li>`;
-  return `<h2>買い物メモ <span class="sub">${open.length ? `${open.length} 件` : '空'} ・ タップで買った</span></h2>
-    <div class="shop-add"><input type="text" id="shop-input" placeholder="牛乳、卵（「、」で区切ると複数）" value="${esc(state.shopDraft)}" maxlength="120" autocomplete="off" enterkeyhint="done"><button class="primary" data-act="shop-add-input">追加</button></div>
+  const row = i => `<li class="shop-item${i.done ? ' is-done' : ''}" data-sid="${esc(i.id)}"><button class="tick" data-act="shop-toggle" aria-label="${i.done ? `${esc(i.text)} を戻す` : `${esc(i.text)} を買った`}">${ic('check')}</button><button class="shop-name" data-act="shop-toggle">${esc(i.text)}</button><button class="ghost icon-only sm" data-act="shop-remove" aria-label="${esc(i.text)} を消す" title="消す">${ic('x')}</button></li>`;
+  return `${head('cart', '買い物メモ', `${open.length ? `${open.length} 件` : '空'} ・ タップで買った`)}
+    <div class="shop-add"><input type="text" id="shop-input" placeholder="牛乳、卵（「、」で区切ると複数）" aria-label="買う物" value="${esc(state.shopDraft)}" maxlength="120" autocomplete="off" enterkeyhint="done"><button class="primary" data-act="shop-add-input">${ic('plus')}<span>追加</span></button></div>
     ${chips ? `<div class="chips shop-chips">${chips}</div>` : ''}
-    ${open.length ? `<ul class="shop">${open.map(row).join('')}</ul>` : '<p class="empty">まだ何もない。補充の 🛒 からも足せる</p>'}
+    ${open.length ? `<ul class="shop">${open.map(row).join('')}</ul>` : `<p class="empty">まだ何もない。補充のカートのボタンからも足せる</p>`}
     ${done.length ? `<h3 class="group">買った <span class="sub">${done.length}</span></h3><ul class="shop">${done.map(row).join('')}</ul>` : ''}
-    <div class="actions left"><button class="ghost small" data-act="shop-share">共有・コピー</button>${done.length ? '<button class="ghost small" data-act="shop-clear">買った分を消す</button>' : ''}</div>`;
+    <div class="actions left"><button class="ghost small" data-act="shop-share">${ic('share')}共有・コピー</button>${done.length ? `<button class="ghost small" data-act="shop-clear">${ic('trash')}買った分を消す</button>` : ''}</div>`;
 }
 
 // ---- 集計（週次目標・ランプ・ストリーク） ----
@@ -326,7 +336,9 @@ function render() {
   const todays = entries.filter(e => e.date === date);
   state.areaXp = areaXpOf(entries);
   renderHeader(today, date);
+  const oldDash = ($('#progress .ring-fill') || { getAttribute: () => '' }).getAttribute('stroke-dasharray');
   $('#progress').innerHTML = progressHTML(today, date, entries);
+  growRing(oldDash);
   $('#tasks').innerHTML = tasksHTML(date, todays, entries);
   $('#menu').innerHTML = menuHTML(date, entries);
   $('#tip').innerHTML = tipHTML(date, entries);
@@ -339,16 +351,42 @@ function render() {
   $('#today-log').innerHTML = logHTML(date, todays);
   renderSearch(date, todays, entries);
   document.body.classList.toggle('busy', state.busy);
-  decorateCards(); updateNav();
+  decorateCards(); requestAnimationFrame(updateNav);
   if (state.shopFocus && !state.busy) { state.shopFocus = false; const inp = $('#shop-input'); if (inp) inp.focus({ preventScroll: true }); }
+}
+// 週の輪: 書き換えた後、前の長さから新しい長さへ CSS の transition で伸ばす（最初の表示はゼロから）
+function growRing(oldDash) {
+  const rf = $('#progress .ring-fill'); if (!rf) return; const nd = rf.getAttribute('stroke-dasharray');
+  const from = oldDash || `0 ${nd.split(' ')[1]}`; if (from === nd) return;
+  rf.style.strokeDasharray = from; rf.getBoundingClientRect(); requestAnimationFrame(() => { rf.style.strokeDasharray = nd; });
 }
 function renderHeader(today, date) {
   $('#date-input').value = date; $('#date-input').max = today;
-  $('#date-dow').textContent = `（${DOW_JA[dowOf(date)]}）`;
   $('#btn-today').hidden = date === today;
   $('#btn-date-next').disabled = date >= today;
-  $('#streak').textContent = `🔥 ${state.streak}日`;
-  const nd = $('#nav-date'); nd.textContent = jaDate(date); nd.classList.toggle('is-past', date !== today);
+  $('#streak').innerHTML = `${ic('flame')}<b>${state.streak}</b><span>日<span class="sl">連続</span></span>`;
+  const nd = $('#nav-date'); nd.innerHTML = `${ic('calendar')}${jaDate(date)}`; nd.classList.toggle('is-past', date !== today);
+  renderSky(today, date);
+}
+// 空（今の時刻で変わる: 朝・昼・夕焼け・夜）とあいさつ。日付と時刻だけで描けるので、データを待たずに最初にも出す
+function renderSky(today, date) {
+  const now = nowParts(); const slot = currentSlot(); const hero = $('#hero');
+  hero.dataset.slot = slot; hero.classList.toggle('is-past', date !== today);
+  const h = now.hour + now.minute / 60;
+  // 16〜19 時は空だけ夕焼け（窓に灯りがつき始める）。ブラウザの上の帯も空の色に合わせる
+  const sky = h >= 16 && h < 19 ? 'dusk' : slot; hero.dataset.sky = sky;
+  const TOP = { morning: ['#ffc9a3', '#4a2e3a'], noon: ['#8ecbff', '#1b3f70'], dusk: ['#f59a78', '#3b2350'], night: ['#161b4a', '#060920'] };
+  document.querySelectorAll('meta[name="theme-color"]').forEach((el, i) => el.setAttribute('content', (TOP[sky] || TOP.noon)[i] || TOP.noon[0]));
+  // 太陽・月の位置: fx は出てから沈むまでの進み（0〜1）、fy は高さ（0 地平線〜1 天頂）。画面のどこを動くかは CSS が決める
+  const day = h >= 5 && h < 19; const f = day ? (h - 5) / 14 : (((h - 19) % 24) + 24) % 24 / 10;
+  hero.style.setProperty('--fx', f.toFixed(3)); hero.style.setProperty('--fy', Math.sin(Math.PI * f).toFixed(3));
+  const G = { morning: ['おはよう', '小さく始めれば、それで十分。'], noon: ['こんにちは', 'ひと息ついたら、一つだけ。'], night: ['おつかれさま', '今日の分は、ここまででも大丈夫。'] };
+  const m = +date.slice(5, 7), d = +date.slice(8, 10);
+  // 文字は変わったときだけ書き換える（最初の描画で出した文字を作り直さない）
+  const put = (sel, t) => { const el = $(sel); if (el.textContent !== t) el.textContent = t; };
+  if (date === today) { put('#greet', G[slot][0]); put('#greet-sub', G[slot][1]); }
+  else { put('#greet', `${m}月${d}日のページ`); put('#greet-sub', 'この日の分を、あとから足せる。'); }
+  put('#date-big', `${m}.${d}`); put('#date-dow', DOW_JA[dowOf(date)]);
 }
 // ---- ページ内ナビ（上に固定のチップ）と、カードの折りたたみ（この端末に記憶） ----
 const NAV_IDS = ['slot-morning', 'slot-noon', 'slot-night', 'menu', 'tip', 'basics', 'quick', 'refill', 'shopping', 'week', 'achievements', 'today-log'];
@@ -360,16 +398,16 @@ function setCollapsed(id, on) {
   try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])); } catch { /* 保存できなくても動く */ }
   const sec = document.getElementById(id); if (!sec) return;
   sec.classList.toggle('is-collapsed', on);
-  const b = sec.querySelector(':scope > h2 > .collapse'); if (b) { b.textContent = on ? '▸' : '▾'; b.setAttribute('aria-expanded', on ? 'false' : 'true'); b.setAttribute('aria-label', on ? '開く' : 'たたむ'); }
+  const b = sec.querySelector(':scope > h2 > .collapse'); if (b) { b.setAttribute('aria-expanded', on ? 'false' : 'true'); b.setAttribute('aria-label', on ? '開く' : 'たたむ'); }
   updateNav();
 }
 // 各カードの見出しに折りたたみボタンを付け、記憶した状態を当てる（描画のたびに呼ぶ）
 function decorateCards() {
-  document.querySelectorAll('#app > .card').forEach(sec => {
+  document.querySelectorAll('#app .card').forEach(sec => {
     const h = sec.querySelector(':scope > h2'); if (!h) return;
     const on = collapsed.has(sec.id);
-    if (!h.querySelector('.collapse')) h.insertAdjacentHTML('beforeend', `<button class="collapse" data-act="collapse-toggle" data-card="${esc(sec.id)}"></button>`);
-    const b = h.querySelector('.collapse'); b.textContent = on ? '▸' : '▾'; b.setAttribute('aria-expanded', on ? 'false' : 'true'); b.setAttribute('aria-label', on ? '開く' : 'たたむ');
+    if (!h.querySelector('.collapse')) h.insertAdjacentHTML('beforeend', `<button class="collapse" data-act="collapse-toggle" data-card="${esc(sec.id)}">${ic('chev-d')}</button>`);
+    const b = h.querySelector('.collapse'); b.setAttribute('aria-expanded', on ? 'false' : 'true'); b.setAttribute('aria-label', on ? '開く' : 'たたむ');
     sec.classList.toggle('is-collapsed', on);
   });
 }
@@ -403,24 +441,37 @@ function progressHTML(today, date, entries) {
   const got = Math.round(sumWeighted(entries, ws, we)); const last = Math.round(sumWeighted(entries, addDays(ws, -7), addDays(ws, -1)));
   const pct = t.target ? Math.round(got / t.target * 100) : 0; const left = daysBetween(date, we) + 1;
   const label = ws === mondayOf(today) ? '今週' : `${jaDate(ws)} の週`;
-  return `<div class="row"><span class="label">${label}</span><strong class="big">${got}<span class="unit"> / ${t.target} 分</span></strong><span class="pct${pct >= 100 ? ' ok' : ''}">${pct}%</span></div>
-    <div class="bar"><div class="fill" style="width:${Math.min(100, pct)}%"></div></div>
-    <div class="sub">Week ${t.weekNo} ・ 目標比率 ${Math.round(t.ratio * 100)}%${t.penalty ? `（未達が続いたので ${t.penalty} 段階下げ）` : ''} ・ この日を入れて残り ${left} 日 ・ 前の週 ${last} 分</div>`;
+  const R = 44, C = 2 * Math.PI * R, fr = Math.min(1, pct / 100);
+  const ring = `<svg class="ring-svg" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="rg-a"/><stop offset="1" class="rg-b"/></linearGradient></defs><circle class="ring-track" cx="50" cy="50" r="${R}"/><circle class="ring-fill${pct >= 100 ? ' is-full' : ''}" cx="50" cy="50" r="${R}" stroke-dasharray="${(C * fr).toFixed(1)} ${C.toFixed(1)}"/></svg>`;
+  // 次の一手: 今の時間帯から、まだ終わっていない定期タスクを 1 つ
+  const todays = entries.filter(e => e.date === date); const pairs = duePairs(date, todays);
+  const rest = pairs.filter(x => !x.p.complete); const order = [currentSlot(), ...SLOTS.map(sl => sl.id)];
+  const next = date === today ? order.map(sid => rest.find(x => x.sid === sid)).find(Boolean) : rest[0];
+  const estSum = rest.reduce((sum, x) => sum + Math.round(weighted(x.r, x.p.doneIds.size ? x.p.rest : estOf(x.r))), 0);
+  let nx;
+  if (next) {
+    const partial = next.p.doneIds.size > 0; const est = partial ? next.p.rest : estOf(next.r);
+    nx = `<div class="hc-next has-rk ${rkOf(next.r.area)}" data-id="${esc(next.r.id)}" data-slot="${next.sid}"><div class="hc-k">${ic(SLOT_ICON[next.sid])}次の一手 ・ ${SLOT_JA[next.sid]}</div><div class="hc-t">${gemHTML(next.r.area)}${esc(next.r.title)}</div><div class="hc-m">${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(next.r, est))}分</div><button class="primary done-btn" data-act="done" data-id="${esc(next.r.id)}" data-slot="${next.sid}" data-min="${est}">${ic('check')}<span>${partial ? '残り完了' : '完了'}</span></button></div>`;
+  } else nx = `<div class="hc-next is-clear"><div class="hc-k">${ic('sparkle')}${pairs.length ? '定期タスクは全部終わり' : 'この日の定期タスクはない'}</div><div class="hc-t">${pairs.length ? 'よくやった。あとは好きに過ごしていい' : '掃除メニューから一つ選んでもいい'}</div></div>`;
+  return `<div class="hc-week"><div class="ring${pct >= 100 ? ' is-full' : ''}">${ring}<div class="ring-c"><b class="num">${pct}</b><span>%</span></div>${pct >= 100 ? `<i class="ring-ok">${ic('sparkle')}達成</i>` : ''}</div>
+    <div class="hc-nums"><div class="hc-label">${label}の換算時間</div><div class="hc-big"><b class="num">${got}</b><span> / ${t.target} 分</span></div>
+    <div class="hc-tags"><span>Week ${t.weekNo}</span><span>目標 ${Math.round(t.ratio * 100)}%${t.penalty ? `（${t.penalty} 段階下げ）` : ''}</span><span>残り ${left} 日</span><span>前週 ${last} 分</span></div>
+    <div class="hc-today">${rest.length ? `${isToday() ? '今日' : 'この日'} 残り <b>${rest.length}</b> 件 ・ 見込み <b>${estSum}</b> 分` : (pairs.length ? '全部完了' : '')}</div></div></div>${nx}`;
 }
 // 手順ブロック（今日のタスク・掃除メニュー共通）。doneMap: 手順 id → その手順の記録（配列）
 function stepsBlockHTML(r, key, sid, doneMap, open, showDate) {
   const steps = stepsOf(r); if (!steps.length) return { toggle: '', list: '' };
   const n = steps.filter(st => (doneMap[st.id] || []).length).length;
-  const toggle = ` ・ <button class="steps-toggle" data-act="steps-toggle" data-key="${esc(key)}" aria-expanded="${open ? 'true' : 'false'}">手順 ${n}/${steps.length} ${open ? '▴' : '▾'}</button>`;
+  const toggle = `<button class="steps-toggle${open ? ' is-open' : ''}${n ? ' has-n' : ''}" data-act="steps-toggle" data-key="${esc(key)}" aria-expanded="${open ? 'true' : 'false'}" aria-label="手順 ${n}/${steps.length}" title="手順">${ic('list')}<span class="num">${n}/${steps.length}</span></button>`;
   const slotAttr = sid ? ` data-slot="${sid}"` : '';
   const rows = steps.map(st => {
     const done = doneMap[st.id] || []; const est = +st.est_minutes || 1;
     if (done.length) {
       const act = done.reduce((a, e) => a + (+e.actual_minutes || 0), 0), wm = done.reduce((a, e) => a + (+e.weighted_minutes || 0), 0); const last = done[done.length - 1];
       const when = showDate && last.date && last.date !== viewDate() ? `${esc(last.date.slice(5).replace('-', '/'))} ` : '';
-      return `<li class="step is-done" data-id="${esc(st.id)}"><span class="ck">✓</span><span class="nm">${esc(st.title)}</span><span class="mt">${when}${act}分 → ${Math.round(wm)}</span>${last.id ? `<button class="ghost tiny" data-act="undo" data-entry="${esc(last.id)}" aria-label="取り消し">×</button>` : ''}</li>`;
+      return `<li class="step is-done" data-id="${esc(st.id)}">${tickHTML(true, '', `${st.title}：完了済み`)}<span class="nm">${esc(st.title)}</span><span class="mt">${when}${act}分 → ${Math.round(wm)}</span>${last.id ? `<button class="ghost icon-only sm" data-act="undo" data-entry="${esc(last.id)}" aria-label="取り消し" title="取り消し">${ic('undo')}</button>` : ''}</li>`;
     }
-    return `<li class="step" data-id="${esc(st.id)}"><span class="ck"></span><span class="nm">${esc(st.title)}</span><span class="mt">${est}分</span><button class="ghost tiny" data-act="detail"${slotAttr} data-min="${est}" aria-label="詳細">…</button><button class="primary tiny" data-act="done"${slotAttr} data-min="${est}">完了</button></li>`;
+    return `<li class="step" data-id="${esc(st.id)}">${tickHTML(false, `data-act="done"${slotAttr} data-min="${est}"`, `完了：${st.title}`)}${ttBtn(esc(st.title), `${slotAttr.trim()} data-min="${est}"`, 'nm')}<span class="mt">${est}分</span></li>`;
   }).join('');
   return { toggle, list: open ? `<ul class="steps">${rows}</ul>` : '' };
 }
@@ -438,23 +489,31 @@ function doneParts(r, sid, todays) {
 function taskRowHTML(r, sid, p) {
   const tl = timeLabel(r); const key = `${r.id}:${sid}`; const partial = p.doneIds.size > 0 && !p.complete;
   const sb = stepsBlockHTML(r, key, sid, p.doneMap, stepsOpen(key, partial), false);
-  let meta, btns;
+  const nSteps = stepsOf(r).length; const pp = nSteps ? Math.round(p.doneIds.size / nSteps * 100) : 0;
+  let meta, btns, tick, tt; const core = r.core ? ' <span class="badge core">core</span>' : '';
   if (p.complete) {
     const done = p.entries;
     const act = done.reduce((a, e) => a + (+e.actual_minutes || 0), 0), wm = done.reduce((a, e) => a + (+e.weighted_minutes || 0), 0);
     const moods = done.filter(e => e.mood).map(e => MOODS[e.mood - 1]).join('');
-    meta = `✓ ${act}分 → 換算 ${Math.round(wm)}分${done.length > 1 ? `（${done.length} 回）` : ''}${done.some(e => e.status === 'partial') ? '（70点）' : ''}${moods ? ' ' + moods : ''}`;
-    btns = `<button class="ghost small" data-act="detail" data-slot="${sid}">追加</button><button class="ghost small" data-act="undo" data-entry="${esc(done[done.length - 1].id || '')}">取り消し</button>`;
+    meta = `<span class="m-done">${act}分 → 換算 ${Math.round(wm)}分${done.length > 1 ? `（${done.length} 回）` : ''}${done.some(e => e.status === 'partial') ? '（70点）' : ''}${moods ? ' ' + moods : ''}</span>`;
+    btns = `<button class="ghost icon-only" data-act="undo" data-entry="${esc(done[done.length - 1].id || '')}" aria-label="取り消し：${esc(r.title)}" title="取り消し">${ic('undo')}</button>`;
+    tick = tickHTML(true, '', `${r.title}：完了済み`); tt = ttBtn(ttIn(r, core), `data-slot="${sid}"`);
   } else {
     const est = partial ? p.rest : estOf(r);
-    meta = `${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分${tl ? ' ・ ' + tl : ''}`;
-    btns = `<button class="ghost small" data-act="detail" data-slot="${sid}" data-min="${est}">詳細</button><button class="primary" data-act="done" data-slot="${sid}" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
+    meta = `<span>${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分</span>${tl ? `<span class="m-at">${ic('clock')}${tl}</span>` : ''}`;
+    btns = '';
+    tick = tickHTML(false, `data-act="done" data-slot="${sid}" data-min="${est}"`, `${partial ? '残りを完了' : '完了'}：${r.title}`, pp); tt = ttBtn(ttIn(r, core), `data-slot="${sid}" data-min="${est}"`);
   }
-  return `<li class="task has-rk ${rkOf(r.area)}${p.complete ? ' is-done' : ''}" data-id="${esc(r.id)}" data-slot="${sid}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)}${r.core ? ' <span class="badge core">core</span>' : ''}</div><div class="meta">${meta}${sb.toggle}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
+  const jd = p.complete && justDone(r.id, sid) ? ' just-done' : '';
+  const st = p.complete && !p.doneIds.size ? { toggle: '', list: '' } : sb;   // 親ごと完了した行には手順を出さない
+  return `<li class="task has-rk ${rkOf(r.area)}${p.complete ? ' is-done' : ''}${jd}" data-id="${esc(r.id)}" data-slot="${sid}"><div class="lead">${tick}</div><div class="main"><div class="title">${tt}</div><div class="meta">${meta}</div></div>${btns || st.toggle ? `<div class="btns">${st.toggle}${btns}</div>` : ''}${st.list}</li>`;
+}
+function duePairs(date, todays) {
+  const pairs = []; activeRoutines().filter(r => dueToday(r, date)).forEach(r => slotsOf(r).filter(sid => !isHidden(`${r.id}@${sid}`)).forEach(sid => pairs.push({ r, sid, p: doneParts(r, sid, todays) })));
+  return pairs;
 }
 function tasksHTML(date, todays, entries) {
-  const due = activeRoutines().filter(r => dueToday(r, date));
-  const pairs = []; due.forEach(r => slotsOf(r).filter(sid => !isHidden(`${r.id}@${sid}`)).forEach(sid => pairs.push({ r, sid, p: doneParts(r, sid, todays) })));
+  const pairs = duePairs(date, todays);
   const remaining = pairs.filter(x => !x.p.complete);
   const est = remaining.reduce((sum, x) => sum + Math.round(weighted(x.r, x.p.doneIds.size ? x.p.rest : estOf(x.r))), 0);
   const perWeek = +(state.config.pass && state.config.pass.per_week) || 0;
@@ -463,13 +522,13 @@ function tasksHTML(date, todays, entries) {
   const sections = SLOTS.map(sl => {
     const items = pairs.filter(x => x.sid === sl.id); if (!items.length) return '';
     const left = items.filter(x => !x.p.complete).length;
-    return `<h3 class="group slot" id="slot-${sl.id}">${sl.ja} <span class="sub">${left ? `残り ${left} 件` : '全部完了'}</span></h3><ul class="tasks">${items.map(x => taskRowHTML(x.r, x.sid, x.p)).join('')}</ul>`;
+    return `<h3 class="group slot slot-${sl.id}" id="slot-${sl.id}"><span class="slot-ic">${ic(SLOT_ICON[sl.id])}</span>${sl.ja} <span class="sub">${left ? `残り ${left} 件` : '全部完了'}</span></h3><ul class="tasks">${items.map(x => taskRowHTML(x.r, x.sid, x.p)).join('')}</ul>`;
   }).join('');
-  const head = remaining.length ? `残り ${remaining.length} 件 ・ 見込み ${est} 換算分` : (pairs.length ? '全部完了 🎉' : '');
+  const summary = remaining.length ? `残り ${remaining.length} 件 ・ 見込み ${est} 換算分` : (pairs.length ? '全部完了' : '');
   const pass = passedToday
     ? '<span class="sub">この日はパス済み。ストリークは続く</span>'
-    : `<button class="ghost small" data-act="pass"${perWeek && passUsed >= perWeek ? ' disabled' : ''}>この日はパス${perWeek ? `（その週 残り ${Math.max(0, perWeek - passUsed)}）` : ''}</button>`;
-  return `<h2>${isToday() ? '今日' : jaDate(date)}のタスク <span class="sub">${head}</span></h2>${sections || '<p class="empty">この日の定期タスクはない</p>'}<div class="pass-row">${pass}</div>`;
+    : `<button class="ghost small" data-act="pass"${perWeek && passUsed >= perWeek ? ' disabled' : ''}>${ic('pause')}この日はパス${perWeek ? `（その週 残り ${Math.max(0, perWeek - passUsed)}）` : ''}</button>`;
+  return `${head('quest', `${isToday() ? '今日' : jaDate(date)}のタスク`, summary)}${sections || '<p class="empty">この日の定期タスクはない</p>'}<div class="pass-row">${pass}</div>`;
 }
 // 掃除メニュー（schedule.type: interval）。前回からの経過日数 ÷ 目安日数 が大きい順。未実施は 1.5 扱い
 const isMenu = r => r.schedule && r.schedule.type === 'interval';
@@ -497,9 +556,11 @@ function menuRowHTML(i, big) {
   const badge = done ? '' : big ? '<span class="badge big">大物</span>' : score >= 1 ? '<span class="badge due">そろそろ</span>' : '';
   const later = !done && score < 1 && since !== null ? ` ・ あと ${Math.max(1, Math.ceil(days - since))} 日` : '';
   const est = partial ? restMinutes(r, doneIds) : estOf(r);
-  const meta = `${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分 ・ 目安 ${days}日ごと ・ ${when}${later}${sb.toggle}`;
-  const btns = done ? '<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>' : `<button class="ghost small" data-act="detail" data-min="${est}">詳細</button><button class="primary" data-act="done" data-min="${est}">${partial ? '残り完了' : '完了'}</button>`;
-  return `<li class="task has-rk ${rkOf(r.area)}${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div>${sb.list}</li>`;
+  const st = done && !doneIds.size ? { toggle: '', list: '' } : sb;
+  const meta = `<span>${partial ? '残り ' : ''}${est}分 → 換算 ${Math.round(weighted(r, est))}分</span><span>目安 ${days}日ごと ・ ${when}${later}</span>`;
+  const nSteps = stepsOf(r).length; const tick = tickHTML(done, `data-act="done" data-min="${est}"`, done ? `${r.title}：この日やった` : `${partial ? '残りを完了' : '完了'}：${r.title}`, nSteps ? Math.round(doneIds.size / nSteps * 100) : 0);
+  const jd = done && justDone(r.id, '') ? ' just-done' : '';
+  return `<li class="task has-rk ${rkOf(r.area)}${done ? ' is-done' : ''}${!done && score < 1 ? ' is-later' : ''}${jd}" data-id="${esc(r.id)}"><div class="lead">${tick}</div><div class="main"><div class="title">${ttBtn(ttIn(r, badge ? ' ' + badge : ''), done ? '' : `data-min="${est}"`)}</div><div class="meta">${meta}</div></div>${st.toggle ? `<div class="btns">${st.toggle}</div>` : ''}${st.list}</li>`;
 }
 function menuHTML(date, entries) {
   const items = menuItems(date, entries); if (!items.length) return '';
@@ -515,9 +576,9 @@ function menuHTML(date, entries) {
     const order = [...PLACES.filter(p => groups.has(p)), ...[...groups.keys()].filter(p => !PLACES.includes(p))];
     full = order.map(p => `<h3 class="group">${esc(p)}</h3><ul class="tasks">${groups.get(p).map(i => menuRowHTML(i, false)).join('')}</ul>`).join('');
   }
-  return `<h2>掃除メニュー <span class="sub">${doneToday ? `この日 ${doneToday} 件 ・ ` : ''}悩んだら上から。過ぎても責めない</span></h2>
+  return `${head('broom', '掃除メニュー', `${doneToday ? `この日 ${doneToday} 件 ・ ` : ''}悩んだら上から。過ぎても責めない`)}
     <ul class="tasks">${picks.map(i => menuRowHTML(i, i === big && i.days >= BIG_DAYS)).join('')}</ul>
-    <button class="ghost small wide" data-act="menu-toggle">${state.showMenu ? '閉じる' : `全部見る（${items.length} 件）`}</button>${full}`;
+    <button class="ghost small wide more" data-act="menu-toggle" aria-expanded="${state.showMenu}">${state.showMenu ? '閉じる' : `全部見る（${items.length} 件）`}${ic('chev-d', 'chev')}</button>${full}`;
 }
 // コツ（knowledge/*.md → data/knowledge.json）。間隔反復: 実践の記録が増えるほど次に出るまでが長くなる
 function tipStats(entries) {
@@ -561,8 +622,8 @@ function tipHTML(date, entries) {
     state.tips.forEach(t => { const k = t.topic || 'その他'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(t); });
     list = [...groups].map(([k, arr]) => `<h3 class="group">${esc(k)}（${arr.length}）</h3>` + arr.map(t => tipItemHTML(t, stats, false)).join('')).join('');
   }
-  const done = practicedToday ? '<span class="sub">✓ 実践した</span>' : `<button class="primary" data-act="tip-practiced" data-tip="${esc(tip.id)}">実践した</button>`;
-  return `<h2>💡 今日のコツ <span class="sub">${esc(tip.topic || '')}${LEVEL_JA[tip.level] ? ` ・ ${LEVEL_JA[tip.level]}` : ''}${s && s.practiced ? ` ・ これまで ${s.practiced}回` : ''}</span></h2>
+  const done = practicedToday ? `<span class="sub done-mark">${ic('check')}実践した</span>` : `<button class="primary" data-act="tip-practiced" data-tip="${esc(tip.id)}">${ic('check')}<span>実践した</span></button>`;
+  return `${head('bulb', '今日のコツ', `${esc(tip.topic || '')}${LEVEL_JA[tip.level] ? ` ・ ${LEVEL_JA[tip.level]}` : ''}${s && s.practiced ? ` ・ これまで ${s.practiced}回` : ''}`)}
     <div class="tip">${tipBoxHTML(tip)}</div>
     <div class="actions left">${done}<button class="ghost small" data-act="tip-next">別のコツ</button><button class="ghost small" data-act="tips-toggle">${state.showTips ? '閉じる' : `コツ一覧（${state.tips.length}）`}</button></div>${list}`;
 }
@@ -573,11 +634,11 @@ function basicsHTML() {
   const rows = state.basics.map((c, i) => {
     const open = state.openChapter === c.id;
     return `<div class="chapter${open ? ' is-open' : ''}" id="ch-${esc(c.id)}">
-      <button class="chapter-head" data-act="chapter" data-ch="${esc(c.id)}" aria-expanded="${open}"><span class="num">${i}</span><span class="ttl">${esc(c.title)}</span><span class="sum">${esc(c.summary || '')}</span><span class="arrow">${open ? '▾' : '▸'}</span></button>
+      <button class="chapter-head" data-act="chapter" data-ch="${esc(c.id)}" aria-expanded="${open}"><span class="num">${i}</span><span class="ttl">${esc(c.title)}</span><span class="sum">${esc(c.summary || '')}</span><span class="arrow">${ic('chev-d', 'chev')}</span></button>
       ${open ? `<div class="chapter-body">${c.html}${chapterSrcUrl(c) ? `<p class="src"><a href="${esc(chapterSrcUrl(c))}" target="_blank" rel="noopener">くわしい元の資料（原文）を開く</a></p>` : ''}<button class="ghost small wide" data-act="chapter" data-ch="${esc(c.id)}">閉じる</button></div>` : ''}
     </div>`;
   }).join('');
-  return `<h2>📘 掃除の教科書 <span class="sub">やさしい版。数字や決まりは元の資料で確かめる</span></h2>${rows}`;
+  return `${head('book', '掃除の教科書', 'やさしい版。数字や決まりは元の資料で確かめる')}${rows}`;
 }
 function openChapter(id, scroll) {
   state.openChapter = state.openChapter === id && !scroll ? '' : id; render();
@@ -591,9 +652,9 @@ function quickHTML(todays) {
     const sum = Math.round(done.reduce((s, e) => s + (+e.weighted_minutes || 0), 0));
     const mins = Array.isArray(r.quick_minutes) && r.quick_minutes.length ? r.quick_minutes : [r.est_minutes];
     const chips = mins.map(m => `<button class="chip" data-act="quick" data-id="${esc(r.id)}" data-min="${+m}">${+m}分</button>`).join('');
-    return `<div class="quick-row has-rk ${rkOf(r.area)}"><div class="title">${gemHTML(r.area)}${esc(r.title)}${done.length ? ` <span class="badge">${done.length}回 ・ 換算 ${sum}分</span>` : ''}</div><div class="chips">${chips}<button class="chip ghost" data-act="detail" data-id="${esc(r.id)}">詳細</button></div></div>`;
+    return `<div class="quick-row has-rk ${rkOf(r.area)}"><div class="title">${gemHTML(r.area)}<span class="tt">${esc(r.title)}</span>${done.length ? ` <span class="badge ok">${done.length}回 ・ 換算 ${sum}分</span>` : ''}</div><div class="chips">${chips}<button class="chip ghost" data-act="detail" data-id="${esc(r.id)}" aria-label="${esc(r.title)} の詳細">${ic('dots')}詳細</button></div></div>`;
   }).join('');
-  return `<h2>後から記録 <span class="sub">終わってから 1 タップ。時間帯は今の時刻で自動</span></h2>${rows}`;
+  return `${head('clock', '後から記録', '終わってから 1 タップ。時間帯は今の時刻で自動')}${rows}`;
 }
 // 補充（routines/refill.yml、kind: refill）。洗剤・消耗品ごとに 1 タスク。記録 2 回以上なら実際の間隔から次の目安を出す
 function refillItems(date, entries) {
@@ -614,9 +675,9 @@ function refillRowHTML(i) {
   const later = !today && next !== null && next > 3 ? ` ・ あと ${next} 日` : '';
   const badge = today ? '' : due ? '<span class="badge due">そろそろ</span>' : '';
   const meta = `${when} ・ ${cyc}${later}${n ? ` ・ ${n} 回` : ''}`;
-  const cart = `<button class="ghost tiny" data-act="shop-add" data-text="${esc(shopNameOf(r))}" aria-label="買い物メモへ" title="買い物メモへ">🛒</button>`;
-  const btns = today ? `${cart}<button class="ghost small" data-act="detail">追加</button><span class="check">✓</span>` : `${cart}<button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done" data-min="${+r.est_minutes || 3}">補充した</button>`;
-  return `<li class="task has-rk ${rkOf(r.area)}${today ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)} ${badge}</div><div class="meta">${meta}</div></div><div class="btns">${btns}</div></li>`;
+  const cart = `<button class="ghost icon-only" data-act="shop-add" data-text="${esc(shopNameOf(r))}" aria-label="買い物メモへ：${esc(shopNameOf(r))}" title="買い物メモへ">${ic('cart')}</button>`;
+  const tick = tickHTML(today, `data-act="done" data-min="${+r.est_minutes || 3}"`, today ? `${r.title}：この日 補充した` : `補充した：${r.title}`);
+  return `<li class="task has-rk ${rkOf(r.area)}${today ? ' is-done' : ''}" data-id="${esc(r.id)}"><div class="lead">${tick}</div><div class="main"><div class="title">${ttBtn(ttIn(r, badge ? ' ' + badge : ''))}</div><div class="meta"><span>${meta}</span></div></div><div class="btns">${cart}</div></li>`;
 }
 function refillHTML(date, entries) {
   const items = refillItems(date, entries); if (!items.length) return '';
@@ -628,29 +689,33 @@ function refillHTML(date, entries) {
     const order = [...REFILL_GROUPS.filter(g => groups.has(g)), ...[...groups.keys()].filter(g => !REFILL_GROUPS.includes(g))];
     full = order.map(g => `<h3 class="group">${esc(g)}</h3><ul class="tasks">${groups.get(g).map(refillRowHTML).join('')}</ul>`).join('');
   }
-  return `<h2>補充 <span class="sub">洗剤・消耗品ごとに 1 タップ。2 回目から次の目安が出る</span></h2>
+  return `${head('bottle', '補充', '洗剤・消耗品ごとに 1 タップ。2 回目から次の目安が出る')}
     ${picks.length ? `<ul class="tasks">${picks.map(refillRowHTML).join('')}</ul>` : '<p class="empty">そろそろの物はない。詰め替えたら「全部見る」から 1 タップ</p>'}
-    <button class="ghost small wide" data-act="refill-toggle">${state.showRefill ? '閉じる' : `全部見る（${items.length} 種）`}</button>${full}`;
+    <button class="ghost small wide more" data-act="refill-toggle" aria-expanded="${state.showRefill}">${state.showRefill ? '閉じる' : `全部見る（${items.length} 種）`}${ic('chev-d', 'chev')}</button>${full}`;
 }
 function weekHTML(today, date, entries) {
   const ws = mondayOf(date); const days = [...Array(7)].map((_, i) => addDays(ws, i));
-  const totals = days.map(d => Math.round(sumWeighted(entries, d, d))); const max = Math.max(60, ...totals);
-  const cols = days.map((d, i) => `<div class="day${d === date ? ' is-today' : ''}${d > today ? ' is-future' : ''}" data-date="${d}"><div class="v">${totals[i] || ''}</div><div class="bar-v"><div style="height:${Math.round(totals[i] / max * 100)}%"></div></div><div class="l">${DOW_JA[dowOf(d)]}</div></div>`).join('');
+  const totals = days.map(d => Math.round(sumWeighted(entries, d, d)));
+  const t = targetInfo(date, entries); const daily = t.target ? Math.round(t.target / 7) : 0;
+  const max = Math.max(60, daily * 1.25, ...totals); const top = Math.max(...totals);
+  const cols = days.map((d, i) => { const v = totals[i]; const label = (d === date || (v > 0 && v === top)) && v ? v : '';
+    return `<button class="day${d === date ? ' is-today' : ''}${d > today ? ' is-future' : ''}${v && v >= daily && daily ? ' is-goal' : ''}" data-date="${d}" aria-label="${jaDate(d)} 換算 ${v} 分"><span class="v">${label}</span><span class="col"><span class="bar-c" style="height:${Math.round(v / max * 100)}%"></span></span><span class="l">${DOW_JA[dowOf(d)]}</span></button>`; }).join('');
   const byArea = {};
-  entries.forEach(e => { if (e.date >= ws && e.date <= addDays(ws, 6) && EARNED.has(e.status)) byArea[e.area] = (byArea[e.area] || 0) + (+e.weighted_minutes || 0); });
-  const areas = Object.entries(byArea).sort((a, b) => b[1] - a[1]).map(([a, v]) => `${AREA_JA[a] || a} ${Math.round(v)}`).join(' ・ ');
-  return `<h2>${ws === mondayOf(today) ? '今週' : 'その週'} <span class="sub">換算分／日。日をタップで移動</span></h2><div class="days">${cols}</div>${areas ? `<div class="sub" style="margin-top:8px">${esc(areas)}</div>` : ''}`;
+  entries.forEach(e => { if (e.date >= ws && e.date <= addDays(ws, 6) && EARNED.has(e.status)) { const a = e.area || 'nameless'; byArea[a] = (byArea[a] || 0) + (+e.weighted_minutes || 0); } });
+  const areas = Object.entries(byArea).sort((a, b) => b[1] - a[1]).map(([a, v]) => `<span class="ak ${rkOf(a)}">${AREA_SVG[a] ? ic(AREA_SVG[a]) : ''}${esc(AREA_JA[a] || a)} <b>${Math.round(v)}</b></span>`).join('');
+  return `${head('chart', ws === mondayOf(today) ? '今週' : 'その週', '換算分／日。日をタップで移動')}<div class="days${daily ? ' has-goal' : ''}" style="--goal:${daily ? (daily / max).toFixed(3) : 0}">${cols}${daily ? `<span class="goal-l">1日の目安 ${daily}</span>` : ''}</div>${areas ? `<div class="area-keys">${areas}</div>` : ''}`;
 }
 function logRowHTML(e, showDate) {
   const time = e.ts ? String(e.ts).slice(11, 16) : ''; const st = e.status === 'partial' ? '70点' : e.status === 'tip' ? 'コツ' : '';
   const slot = SLOT_JA[entrySlot(e, taskById(e.task_id))] || '';
   const when = showDate ? esc(e.date.slice(5).replace('-', '/')) : esc(time);
-  return `<li><span class="t">${when}</span><span class="n">${esc(e.title || e.task_id)} <span class="badge">${slot}</span>${st ? ` <span class="badge">${st}</span>` : ''}${e.mood ? ' ' + MOODS[e.mood - 1] : ''}${e.learned ? `<div class="note">💡 ${esc(e.learned)}</div>` : ''}</span><span class="m">${EARNED.has(e.status) ? `${e.actual_minutes}分 → ${Math.round(e.weighted_minutes)}` : ''}</span>${e.id ? `<button class="ghost tiny" data-act="undo" data-entry="${esc(e.id)}" aria-label="取り消し">×</button>` : ''}</li>`;
+  const area = e.area || (taskById(e.task_id) || {}).area || 'nameless';
+  return `<li class="${rkOf(area)}${e.status === 'tip' ? ' is-tip' : ''}${e.status === 'passed' ? ' is-pass' : ''}"><span class="t">${when}</span><span class="n">${esc(e.title || e.task_id)} <span class="badge">${slot}</span>${st ? ` <span class="badge">${st}</span>` : ''}${e.mood ? ' ' + MOODS[e.mood - 1] : ''}${e.learned ? `<span class="note">${ic('bulb')}${esc(e.learned)}</span>` : ''}</span><span class="m">${EARNED.has(e.status) ? `${e.actual_minutes}分 → ${Math.round(e.weighted_minutes)}` : ''}</span>${e.id ? `<button class="ghost icon-only sm" data-act="undo" data-entry="${esc(e.id)}" aria-label="取り消し" title="取り消し">${ic('x')}</button>` : ''}</li>`;
 }
 function logHTML(date, todays) {
   const title = isToday() ? '今日の記録' : `${jaDate(date)} の記録`;
-  if (!todays.length) return `<h2>${title}</h2><p class="empty">まだ何もない。最初の 1 件が一番えらい</p>`;
-  return `<h2>${title} <span class="sub">${todays.length} 件</span></h2><ul class="log">${[...todays].reverse().map(e => logRowHTML(e, false)).join('')}</ul>`;
+  if (!todays.length) return `${head('list', title)}<p class="empty">まだ何もない。最初の 1 件が一番えらい</p>`;
+  return `${head('list', title, `${todays.length} 件`)}<ul class="log">${[...todays].reverse().map(e => logRowHTML(e, false)).join('')}</ul>`;
 }
 // 検索: タスク（定期・メニュー・後から記録）、コツ、過去の記録
 function renderSearch(date, todays, entries) {
@@ -665,11 +730,11 @@ function renderSearch(date, todays, entries) {
   const rHtml = routines.map(r => {
     const done = todays.filter(e => e.task_id === r.id && EARNED.has(e.status)); const s = r.schedule || {};
     const kind = s.type === 'interval' ? `目安 ${s.days}日ごと` : s.type === 'manual' ? (isRefill(r) ? '補充' : '後から記録') : s.type === 'weekly' ? `毎週 ${s.day}` : '毎日';
-    return `<li class="task has-rk ${rkOf(r.area)}" data-id="${esc(r.id)}"><div class="main"><div class="title">${gemHTML(r.area)}${esc(r.title)}</div><div class="meta">${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ ${kind}${done.length ? ` ・ この日 ${done.length} 回` : ''}</div></div><div class="btns"><button class="ghost small" data-act="detail">詳細</button><button class="primary" data-act="done">完了</button></div></li>`;
+    return `<li class="task has-rk ${rkOf(r.area)}" data-id="${esc(r.id)}"><div class="lead">${tickHTML(false, 'data-act="done"', `完了：${r.title}`)}</div><div class="main"><div class="title">${ttBtn(ttIn(r))}</div><div class="meta">${r.est_minutes}分 → 換算 ${Math.round(weighted(r, r.est_minutes))}分 ・ ${kind}${done.length ? ` ・ この日 ${done.length} 回` : ''}</div></div></li>`;
   }).join('');
   const html = (routines.length ? `<h3 class="group">タスク（${routines.length}）</h3><ul class="tasks">${rHtml}</ul>` : '')
     + (tips.length ? `<h3 class="group">コツ（${tips.length}）</h3>${tips.map(t => tipItemHTML(t, stats, true)).join('')}` : '')
-    + (chapters.length ? `<h3 class="group">教科書（${chapters.length}）</h3><ul class="tasks">${chapters.map(c => `<li class="task"><div class="main"><div class="title">${esc(c.title)}</div><div class="meta">${esc(c.summary || '')}</div></div><div class="btns"><button class="ghost small" data-act="chapter-open" data-ch="${esc(c.id)}">開く</button></div></li>`).join('')}</ul>` : '')
+    + (chapters.length ? `<h3 class="group">教科書（${chapters.length}）</h3><ul class="tasks">${chapters.map(c => `<li class="task"><div class="lead"><span class="lead-ic">${ic('book')}</span></div><div class="main"><div class="title">${esc(c.title)}</div><div class="meta">${esc(c.summary || '')}</div></div><div class="btns"><button class="ghost small" data-act="chapter-open" data-ch="${esc(c.id)}">${ic('book')}開く</button></div></li>`).join('')}</ul>` : '')
     + (logs.length ? `<h3 class="group">記録（新しい順 ${logs.length} 件）</h3><ul class="log">${logs.map(e => logRowHTML(e, true)).join('')}</ul>` : '');
   box.innerHTML = html || '<p class="empty">見つからない</p>';
 }
@@ -919,12 +984,12 @@ function achievementsHTML(today, date, entries, all) {
   // 称号の札: 段の番号・名前・次の称号までの進み
   const lo = ttl.cur.badges, hi = ttl.next ? ttl.next.badges : lo; const tpct = ttl.next ? Math.round((n - lo) / Math.max(1, hi - lo) * 100) : 100;
   const plate = `<div class="title-plate ${rankCls(tRank)}"><div class="tp-emblem"><small>第</small><b>${ttl.idx + 1}</b><small>段</small></div><div class="tp-main"><div class="tp-label">称号 ・ 全 ${ttl.list.length} 段</div><div class="tp-name">${esc(ttl.name)}</div><div class="bar tp-bar"><div class="fill" style="width:${tpct}%"></div></div><div class="tp-next">${ttl.next ? `次は「${esc(ttl.next.name)}」 あと ${ttl.next.badges - n} 個` : '最上段に到達'}</div></div></div>`;
-  const stats = `<div class="stats"><div class="stat"><span class="k">🏅 バッジ</span><b>${n}</b><span class="u">/${total}</span></div><div class="stat"><span class="k">✨ XP</span><b>${xp.toLocaleString()}</b></div><div class="stat"><span class="k">🔥 最長連続</span><b>${st.streakBest}</b><span class="u">日</span></div><div class="stat"><span class="k">⏱ 換算</span><b>${Math.round(st.weighted / 60)}</b><span class="u">時間</span></div></div>`;
+  const stats = `<div class="stats"><div class="stat"><span class="k">${ic('trophy')}バッジ</span><b>${n}</b><span class="u">/${total}</span></div><div class="stat"><span class="k">${ic('sparkle')}XP</span><b>${xp.toLocaleString()}</b></div><div class="stat"><span class="k">${ic('flame')}最長連続</span><b>${st.streakBest}</b><span class="u">日</span></div><div class="stat"><span class="k">${ic('clock')}換算</span><b>${Math.round(st.weighted / 60)}</b><span class="u">時間</span></div></div>`;
   // 領域のメダル: 輪は次の Lv までの進み、色は段。押すとその領域の詳しい数字
   const info = AREAS.map(a => { const x = st.xpByArea[a] || 0; const lv = levelOf(x); const lo2 = lv * lv * 100, hi2 = nextLevelXp(lv); return { a, x, lv, hi: hi2, p: Math.round((x - lo2) / (hi2 - lo2) * 100) }; });
   const focus = info.find(i => i.a === state.lvFocus) || info.slice().sort((p, q) => q.p - p.p)[0];
-  const medals = info.map(i => `<button class="medal ${rankCls(i.lv)}${i === focus ? ' is-focus' : ''}${state.lvUp.includes(i.a) ? ' is-up' : ''}" data-act="lv-focus" data-area="${i.a}" style="--p:${i.lv >= 9 ? 100 : i.p}" aria-label="${AREA_JA[i.a]} Lv${i.lv} ${rankName(i.lv)}"><span class="ring"><span class="core">${AREA_ICON[i.a]}</span></span><span class="lv">Lv${i.lv}<i>${rankName(i.lv)}</i></span><span class="nm">${AREA_SHORT[i.a]}</span></button>`).join('');
-  const detail = `<div class="medal-detail"><b>${AREA_JA[focus.a]}</b><span class="rank-chip ${rankCls(focus.lv)}">Lv${focus.lv} ${rankName(focus.lv)}</span><span>${focus.x.toLocaleString()} / ${focus.hi.toLocaleString()} XP</span><span>あと ${(focus.hi - focus.x).toLocaleString()} XP で</span><span class="rank-chip ${rankCls(focus.lv + 1)}">Lv${focus.lv + 1} ${rankName(focus.lv + 1)}</span></div>`;
+  const medals = info.map(i => `<button class="medal ${rankCls(i.lv)}${i === focus ? ' is-focus' : ''}${state.lvUp.includes(i.a) ? ' is-up' : ''}" data-act="lv-focus" data-area="${i.a}" style="--p:${i.lv >= 9 ? 100 : i.p}" aria-label="Lv${i.lv} ${rankName(i.lv)} ${AREA_SHORT[i.a]}（${AREA_JA[i.a]}）"><span class="ring"><span class="core">${ic(AREA_SVG[i.a])}</span></span><span class="lv">Lv${i.lv}<i>${rankName(i.lv)}</i></span><span class="nm">${AREA_SHORT[i.a]}</span></button>`).join('');
+  const detail = `<div class="medal-detail"><div><b>${AREA_JA[focus.a]}</b><span class="rank-chip ${rankCls(focus.lv)}">Lv${focus.lv} ${rankName(focus.lv)}</span><span class="num">${focus.x.toLocaleString()} / ${focus.hi.toLocaleString()} XP</span></div><div><span>あと <b class="num">${(focus.hi - focus.x).toLocaleString()}</b> XP で</span><span class="rank-chip ${rankCls(focus.lv + 1)}">Lv${focus.lv + 1} ${rankName(focus.lv + 1)}</span></div></div>`;
   const legend = `<div class="rank-legend" aria-label="レベルの色">${RANKS.map((k, i) => `<span class="${rankCls(i)}">${i === RANKS.length - 1 ? `Lv${i}+` : `Lv${i}`} ${k}</span>`).join('')}</div>`;
   const measured = shown.map(b => ({ b, m: measure(b, st, earned, date) }));
   const near = measured.filter(x => !earned[x.b.id] && !x.b.secret && x.m.t > 0).map(x => ({ ...x, r: Math.min(1, x.m.v / x.m.t) })).sort((a, b) => b.r - a.r || a.m.t - b.m.t).slice(0, 3);
@@ -944,9 +1009,9 @@ function achievementsHTML(today, date, entries, all) {
       (cat ? [cat] : cats).map(c => { const list = shown.filter(b => (b.cat || 'その他') === c); const got = list.filter(b => earned[b.id]).length;
         return `<h3 class="group">${esc(c)} <span class="sub">${got}/${list.length}</span></h3><div class="badge-grid">${list.map(b => badgeTileHTML(b, earned[b.id], measured.find(x => x.b === b).m)).join('')}</div>`; }).join('');
   }
-  return `<h2>🏆 実績${date !== today ? ` <span class="sub">${esc(date.slice(5).replace('-', '/'))} 時点</span>` : ''} <span class="sub only-collapsed">称号 <b>${esc(ttl.name)}</b> ・ ${n}/${total}</span></h2>
+  return `${head('trophy', '実績', date !== today ? `${esc(date.slice(5).replace('-', '/'))} 時点` : '', ` <span class="sub only-collapsed">称号 <b>${esc(ttl.name)}</b> ・ ${n}/${total}</span>`)}
     ${plate}${stats}
-    <h3 class="group">領域のレベル <span class="sub">Lv が上がると色が変わる。押すと詳しく</span></h3><div class="medals">${medals}</div>${detail}${legend}
+    <h3 class="group">領域のレベル <span class="sub">Lv が上がると色が変わる</span></h3><div class="medals">${medals}</div>${detail}${legend}
     ${near.length ? `<h3 class="group">あと少し</h3>${nearHtml}` : ''}
     ${recent.length ? `<h3 class="group">最近の獲得</h3>${recentHtml}` : ''}
     <button class="ghost small wide" data-act="trophy-toggle">${state.showTrophy ? '閉じる' : `トロフィールームを開く（全 ${total} 種）`}</button>${room}`;
@@ -976,7 +1041,8 @@ async function run(fn, okMsg) {
   if (state.busy) return;
   const before = state.loaded ? new Set(Object.keys(state.earnedAll || {})) : null; let ok = false;   // 初回読み込みでは過去の獲得を通知しない
   const lvBefore = state.loaded ? { ...(state.lvAll || {}) } : null; const titleBefore = state.loaded ? state.titleAll : null;
-  state.busy = true; render();
+  state.busy = true;
+  if (state.loaded) render(); else document.body.classList.add('busy');   // 最初の読み込み中は骨組みのまま（記録なしの仮の数字を出さない）
   try { await fn(); ok = true; }
   catch (e) { console.error(e); toast(e.message || String(e), true); }
   finally {
@@ -987,9 +1053,9 @@ async function run(fn, okMsg) {
     // 領域の Lv が上がった・称号が上がったら演出（記録を増やしたときだけ。取り消しや日付の移動では出さない）
     if (ok && lvBefore && state.lvAll) {
       const ups = AREAS.filter(a => (state.lvAll[a] || 0) > (lvBefore[a] || 0));
-      const items = ups.map(a => { const lv = state.lvAll[a]; return { rk: rankCls(lv), icon: AREA_ICON[a], kicker: 'LEVEL UP', html: `${esc(AREA_JA[a])} <span class="gem ${rankCls(lv)}">Lv${lv}</span>`, sub: rankIdx(lv) > rankIdx(lvBefore[a] || 0) ? `段の色が「${rankName(lvBefore[a] || 0)}」から「${rankName(lv)}」に変わった` : '虹のまま、さらに上へ' }; });
+      const items = ups.map(a => { const lv = state.lvAll[a]; return { rk: rankCls(lv), icon: ic(AREA_SVG[a]), kicker: 'LEVEL UP', html: `${esc(AREA_JA[a])} <span class="gem ${rankCls(lv)}">Lv${lv}</span>`, sub: rankIdx(lv) > rankIdx(lvBefore[a] || 0) ? `段の色が「${rankName(lvBefore[a] || 0)}」から「${rankName(lv)}」に変わった` : '虹のまま、さらに上へ' }; });
       const tA = state.titleAll, tB = titleBefore;
-      if (tA && tB && tA.idx > tB.idx) items.push({ rk: rankCls(titleRank(tA.idx, tA.list.length)), icon: '👑', kicker: '称号アップ', html: esc(tA.name), sub: `「${tB.name}」から 1 段上がった` });
+      if (tA && tB && tA.idx > tB.idx) items.push({ rk: rankCls(titleRank(tA.idx, tA.list.length)), icon: ic('trophy'), kicker: '称号アップ', html: esc(tA.name), sub: `「${tB.name}」から 1 段上がった` });
       if (items.length) {
         state.lvUp = ups; render(); celebrate(items);
         setTimeout(() => { state.lvUp = []; }, 5000);
@@ -1012,8 +1078,11 @@ async function append(e, message, okMsg) {
     state.streak = await computeStreak(nowParts().date);
   }, okMsg);
 }
+// 完了した直後の行（数秒だけ光らせる）
+const justDone = (id, slot) => !!state.justDone && state.justDone.id === id && (!slot || state.justDone.slot === slot) && Date.now() - state.justDone.at < 4000;
 async function record(r, { minutes, mood, learned, status = 'done', tip_id, tip_practiced, slot }) {
   if (!requireToken()) return;
+  try { if (navigator.vibrate) navigator.vibrate(12); } catch { /* 振動できない端末 */ }
   const e = baseEntry();
   Object.assign(e, { task_id: r.id, title: r.title, area: r.area, slot: SLOT_JA[slot] ? slot : currentSlot(), status, mode: 'full', actual_minutes: minutes, weight: weightOf(r), weighted_minutes: weighted(r, minutes), xp: Math.round(weighted(r, minutes)) });
   if (r.parent) e.parent = r.parent;   // 手順の記録。親タスクの id
@@ -1021,6 +1090,7 @@ async function record(r, { minutes, mood, learned, status = 'done', tip_id, tip_
   if (mood) e.mood = mood;
   if (learned) e.learned = learned;
   e.id = uid();
+  state.justDone = { id: r.parent || r.id, slot: e.slot, at: Date.now() };
   await append(e, `log: ${r.id} ${e.date} ${minutes}m [skip ci]`, `${SLOT_JA[e.slot]}: ${r.title} ${minutes}分 → 換算 ${Math.round(e.weighted_minutes)}分`);
 }
 async function recordPass() {
@@ -1054,7 +1124,9 @@ async function setDate(d) {
   await run(async () => { await ensureMonths(addDays(mondayOf(date), -7), date); });
 }
 
-$('#app').addEventListener('click', ev => {
+// iPhone の Safari で押した瞬間の見た目（:active）を出すため
+document.addEventListener('touchstart', () => {}, { passive: true });
+document.addEventListener('click', ev => {
   const day = ev.target.closest('.day[data-date]'); if (day && !state.busy) { setDate(day.dataset.date); return; }
   const b = ev.target.closest('button[data-act]'); if (!b || b.disabled) return;
   if (state.busy && !/^chapter/.test(b.dataset.act) && !/toggle|tip-next/.test(b.dataset.act)) return;
@@ -1100,7 +1172,7 @@ function openDetail(r, slot, min) {
   detailTip = tipForRoutine(r, tipStats(allEntries()));
   $('#detail-tip-wrap').hidden = !detailTip;
   if (detailTip) { $('#detail-tip').innerHTML = tipBoxHTML(detailTip); $('#detail-tip-practiced').checked = false; }
-  $('#detail-title').textContent = r.title; $('#detail-w').textContent = `W=${weightOf(r).toFixed(2)}${isToday() ? '' : ` ・ ${jaDate(viewDate())} に記録`}`;
+  $('#detail-title').textContent = r.title; $('#detail-w').textContent = `負荷の係数 ×${weightOf(r).toFixed(2)}${isToday() ? '' : ` ・ ${jaDate(viewDate())} に記録`}`;
   const opts = [...new Set([detailMin, estOf(r), ...(r.quick_minutes || []).map(Number), 1, 2, 3, 5, 10, 15, 20, 30, 45, 60, 90, 120].filter(n => n > 0))].sort((a, b) => a - b);
   $('#detail-minutes').innerHTML = opts.map(m => `<button type="button" class="chip${m === detailMin ? ' is-on' : ''}" data-min="${m}">${m}分</button>`).join('');
   $('#detail-slot').innerHTML = SLOTS.map(s => `<button type="button" class="chip${s.id === detailSlot ? ' is-on' : ''}" data-slot="${s.id}">${s.ja}</button>`).join('');
@@ -1159,6 +1231,7 @@ $('#settings-test').addEventListener('click', async () => {
 });
 
 // 日付の切り替えと検索
+$('#date-pick').addEventListener('click', ev => { const inp = $('#date-input'); if (ev.target === inp || !inp.showPicker) return; ev.preventDefault(); try { inp.showPicker(); } catch { inp.focus(); } });
 $('#btn-date-prev').addEventListener('click', () => { if (!state.busy) setDate(addDays(viewDate(), -1)); });
 $('#btn-date-next').addEventListener('click', () => { if (!state.busy) setDate(addDays(viewDate(), 1)); });
 $('#btn-today').addEventListener('click', () => { if (!state.busy) setDate(''); });
@@ -1171,30 +1244,36 @@ $('#q').addEventListener('input', ev => {
 });
 
 // ---- 起動 ----
-async function reload() {
-  await run(async () => {
-    state.months.clear();
-    const today = nowParts().date; const a = addDays(startMonday(), -7), b = addDays(today, -366);
-    const pf = fetchPrefs().catch(() => state.prefsFile || { sha: null, data: { hidden: [] } });   // 読めなくても動く（書くときに読み直す）
-    const sf = fetchJsonFile('shopFile').catch(() => state.shopFile);
-    await ensureMonths(a > b ? a : b, today);
-    state.prefsFile = await pf; state.shopFile = await sf;
-    if (state.viewDate) await ensureMonths(addDays(mondayOf(state.viewDate), -7), state.viewDate);
-    state.streak = await computeStreak(today); state.loaded = true;
-  });
+// 記録（logs・prefs・買い物メモ）を GitHub から読む。要るのは設定（リポジトリ名）だけなので、起動時はほかのデータと並行して読む
+async function loadLogs() {
+  state.months.clear();
+  const today = nowParts().date; const a = addDays(startMonday(), -7), b = addDays(today, -366);
+  const pf = fetchPrefs().catch(() => state.prefsFile || { sha: null, data: { hidden: [] } });   // 読めなくても動く（書くときに読み直す）
+  const sf = fetchJsonFile('shopFile').catch(() => state.shopFile);
+  await ensureMonths(a > b ? a : b, today);
+  state.prefsFile = await pf; state.shopFile = await sf;
+  if (state.viewDate) await ensureMonths(addDays(mondayOf(state.viewDate), -7), state.viewDate);
+  state.streak = await computeStreak(today);
 }
+async function reload() { await run(async () => { await loadLogs(); state.loaded = true; }); }
 async function init() {
+  { const t = nowParts().date; renderSky(t, t); }   // 空・あいさつ・日付はすぐ出す
   try { state.token = localStorage.getItem(TOKEN_KEY) || ''; } catch { state.token = ''; }
+  let logs = null;
   try {
-    const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); });
-    const [routines, config, tips, basics, badges] = await Promise.all([get('data/routines.json'), get('data/config.json'), get('data/knowledge.json').catch(() => []), get('data/basics.json').catch(() => []), get('data/badges.json').catch(() => [])]);
-    state.routines = Array.isArray(routines) ? routines : []; stepIndexCache = null; state.config = config || {}; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
+    const get = u => fetch(u, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(`${u} ${r.status}`); return r.json(); });
+    const pConfig = get('data/config.json');
+    const pRest = Promise.all([get('data/routines.json'), get('data/knowledge.json').catch(() => []), get('data/basics.json').catch(() => []), get('data/badges.json').catch(() => [])]); pRest.catch(() => {});
+    state.config = (await pConfig) || {};
+    logs = loadLogs(); logs.catch(() => {});   // 記録はすぐ取りに行く（失敗は下の run で知らせる）
+    const [routines, tips, basics, badges] = await pRest;
+    state.routines = Array.isArray(routines) ? routines : []; stepIndexCache = null; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
   } catch (e) { $('#tasks').innerHTML = `<p class="empty">設定の読み込みに失敗: ${esc(e.message)}</p>`; return; }
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;
   $('#spec-link').href = `https://github.com/${rp.owner}/${rp.name}/blob/${branch()}/docs/SPEC.md`;
   $('#supplies-link').href = `https://github.com/${rp.owner}/${rp.name}/blob/${branch()}/docs/supplies.md`;
-  await reload();
+  await run(async () => { await logs; state.loaded = true; });
 }
 $('#btn-reload').addEventListener('click', reload);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && !state.busy && state.routines.length) reload(); });
