@@ -12,3 +12,4 @@
 {"date":"2026-10-02","ts":"2026-10-02T20:33:11+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"muqvwmreyw63"}
 {"date":"2026-10-02","ts":"2026-10-02T20:33:16+09:00","task_id":"dinner-cook","title":"夜ご飯を作る","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":30,"weight":1.35,"weighted_minutes":40.5,"xp":41,"id":"muqvwqub91vi"}
 {"date":"2026-10-02","ts":"2026-10-02T20:33:27+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"muqvwz5w13qz"}
+{"date":"2026-10-02","ts":"2026-10-02T22:52:18+09:00","task_id":"_tip","title":"道具は「使う場所」に置く","area":"cleaning","status":"tip","tip_id":"cleaning-033","tip_practiced":true,"id":"mur0vj71k0i2"}
