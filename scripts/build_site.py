@@ -56,6 +56,8 @@ def load_routines():
                 fail(f"{rid}: kind は {sorted(KINDS)} のどれか")
             if "interval_days" in r and not (isinstance(r["interval_days"], int) and r["interval_days"] > 0):
                 fail(f"{rid}: interval_days は正の整数")
+            if "match" in r and not (isinstance(r["match"], list) and all(isinstance(x, str) and x.strip() for x in r["match"])):
+                fail(f"{rid}: match は商品名（文字）のリスト")
             steps = r.get("steps") or []
             if not isinstance(steps, list):
                 fail(f"{rid}: steps はリストにする")
@@ -131,7 +133,8 @@ CUSTOM_KEYS = {"fast", "long", "both_slots", "trio", "day_entries", "morning_ent
                "core_streak", "resume", "all_places", "everyday_weeks", "tip_stage", "best_week", "ramp_top",
                "step_entries", "steps_complete", "record_days", "since_first", "full_months", "seasons", "dow_cover",
                "tasks_day", "distinct", "menu_count", "day_weighted", "light_days", "all_slots_days", "slot_total",
-               "tips_distinct", "fast_total", "on_date", "year_end"}
+               "tips_distinct", "fast_total", "on_date", "year_end", "shop"}
+SHOP_OF = {"items", "days", "distinct", "same", "bulk", "weeks", "refill", "pairs", "clean"}
 BADGE_FIELDS = {"id", "name", "icon", "tier", "cat", "desc", "condition", "secret", "xp_bonus"}
 
 
@@ -168,6 +171,8 @@ def load_badges(routines):
             fail(f"badges: {b['id']} の distinct には of: menu / refill / any が要る")
         if c.get("place") is not None and c["place"] not in places:
             fail(f"badges: {b['id']} の place {c['place']} は掃除メニューに無い")
+        if c.get("key") == "shop" and c.get("of") not in SHOP_OF:
+            fail(f"badges: {b['id']} の shop には of: {' / '.join(sorted(SHOP_OF))} のどれかが要る")
         if c.get("key") == "slot_total" and c.get("slot") not in ("morning", "noon", "night"):
             fail(f"badges: {b['id']} の slot は morning / noon / night")
         for tid in ([c["task"]] if c.get("task") else []) + list(c.get("tasks") or []):

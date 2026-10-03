@@ -876,6 +876,9 @@ load/W1.0 〜 load/W1.7   換算係数（Bot が自動付与）
 > `status`: `done` | `partial` | `passed` | `blocked`
 > `mood`: 1-5（任意）。**同じ領域で3回連続 mood ≤ 2 なら週報が警告を出す**（燃え尽きの早期検知）。
 > `actor` フィールドは持たない。利用者は自分ひとりのため。
+> 買い物（ページの買い物メモで「買い物を記録」したとき）は `task_id: "shopping"`、`mode: "shop"` の行になる。買った日ごとに 1 行で、
+> `items`（買った物の名前）、`item_ids`（メモの項目 id。二重に記録しないため）、`left`（記録したときメモに残っていた数）を持つ。
+> `area: "nameless"`、`actual_minutes` と `weighted_minutes` は 0（週の目標には入れない）、`xp` は 1 点 3。バッジの数え方は docs/badges.md の `shop`。
 
 ### 13.2 `config.yml`
 

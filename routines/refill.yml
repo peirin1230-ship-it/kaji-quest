@@ -8,11 +8,13 @@
 #   group: 台所 / 洗濯 / 浴室・洗面 / トイレ / 掃除用 / 消耗品（カードの見出し）
 #   interval_days: N        → 記録が少ないうちの目安の間隔（日）
 #   buy: 買う物の名前       → 🛒 で買い物メモに入る名前。無ければ title から「〜の詰め替え」などを外した名前
+#   match: [商品名, …]       → 買い物メモで買った物がこの項目だと分かるための別名（よくある商品名）。買い物のバッジ（補充とのつながり）に使う
 #   schedule は manual 固定。est_minutes は 1 回分の見込み。負荷 W はすべて 1.00
 
 # ---- 台所 ----
 - id: refill-dish-soap
   title: 食器用洗剤の詰め替え
+  match: [キュキュット, ジョイ]
   area: nameless
   kind: refill
   group: 台所
@@ -28,6 +30,7 @@
 
 - id: refill-dishwasher
   title: 食洗機用洗剤の補充
+  match: [フィニッシュ]
   area: nameless
   kind: refill
   group: 台所
@@ -58,6 +61,7 @@
 
 - id: refill-alcohol
   title: 消毒用エタノールの詰め替え
+  match: [アルコール]
   area: nameless
   kind: refill
   group: 台所
@@ -103,6 +107,7 @@
 # ---- 洗濯 ----
 - id: refill-laundry-detergent
   title: 洗濯洗剤の詰め替え
+  match: [アタック, アリエール, ボールド]
   area: nameless
   kind: refill
   group: 洗濯
@@ -118,6 +123,7 @@
 
 - id: refill-softener
   title: 柔軟剤の詰め替え
+  match: [レノア, ハミング, ソフラン]
   area: nameless
   kind: refill
   group: 洗濯
@@ -132,6 +138,7 @@
 
 - id: refill-oxygen-bleach
   title: 酸素系漂白剤の補充
+  match: [ワイドハイター, オキシクリーン]
   area: nameless
   kind: refill
   group: 洗濯
@@ -222,6 +229,7 @@
 
 - id: refill-bath-cleaner
   title: お風呂用洗剤の詰め替え
+  match: [バスマジックリン]
   area: nameless
   kind: refill
   group: 浴室・洗面
@@ -237,6 +245,7 @@
 - id: refill-mold-remover
   title: カビ取り剤の補充（新しいのを開けた）
   buy: カビ取り剤
+  match: [カビキラー, カビハイター]
   area: nameless
   kind: refill
   group: 浴室・洗面
@@ -267,6 +276,7 @@
 # ---- トイレ ----
 - id: refill-toilet-cleaner
   title: トイレ用洗剤の詰め替え
+  match: [トイレマジックリン, サンポール]
   area: nameless
   kind: refill
   group: トイレ
@@ -360,6 +370,7 @@
 - id: refill-pipe-cleaner
   title: パイプ洗浄剤の補充（新しいのを開けた）
   buy: パイプ洗浄剤
+  match: [パイプユニッシュ, パイプハイター]
   area: nameless
   kind: refill
   group: 掃除用
@@ -375,6 +386,7 @@
 
 - id: refill-floor-sheets
   title: フロアワイパー用シートの補充
+  match: [クイックルワイパー]
   area: nameless
   kind: refill
   group: 掃除用

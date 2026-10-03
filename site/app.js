@@ -11,6 +11,7 @@ const API = 'https://api.github.com';
 const TOKEN_KEY = 'kq_token';
 const PREFS_PATH = 'prefs.json';   // 削除（非表示）にしたタスクの一覧。ページが GitHub API で読み書きする
 const SHOP_PATH = 'shopping.json';  // 買い物メモ。同じくページが読み書きする
+const SHOP_XP = 3;                  // 買った物 1 点の XP（名もなき家事）。買い物は換算時間には入れない
 const TZ = 'Asia/Tokyo';
 const LOAD = { physical: { 1: 0, 2: 0.1, 3: 0.2 }, mental: { 1: 0, 2: 0.15, 3: 0.3 }, time_bound: { 0: 0, 1: 0.1, 2: 0.2 } };
 const DOW_JA = ['日', '月', '火', '水', '木', '金', '土'];
@@ -253,7 +254,7 @@ async function shopAdd(text) {
   state.shopDraft = ''; state.shopFocus = true;
   await run(async () => {
     await saveJsonFile('shopFile', d => {
-      list.forEach(t => { const dup = d.items.find(i => i.text === t); if (dup) dup.done = false; else d.items.push({ id: uid(), text: t, added: nowParts().date }); });
+      list.forEach(t => { const dup = d.items.find(i => i.text === t); if (dup) { dup.done = false; delete dup.bought; } else d.items.push({ id: uid(), text: t, added: nowParts().date }); });
       d.recent = [...list, ...d.recent.filter(t => !list.includes(t))].slice(0, 40);
       return d;
     }, `shop: add ${list.join('、')} [skip ci]`);
@@ -261,15 +262,38 @@ async function shopAdd(text) {
 }
 async function shopToggle(id) {
   if (!requireToken()) return;
-  await run(async () => { await saveJsonFile('shopFile', d => { const it = d.items.find(i => i.id === id); if (it) it.done = !it.done; return d; }, `shop: toggle ${id} [skip ci]`); });
+  const now = nowParts(); const at = state.config.privacy && state.config.privacy.log_time === false ? now.date : now.iso;   // 買った日（時刻は記録の設定に合わせる）
+  await run(async () => { await saveJsonFile('shopFile', d => { const it = d.items.find(i => i.id === id); if (it) { it.done = !it.done; if (it.done) it.bought = at; else delete it.bought; } return d; }, `shop: toggle ${id} [skip ci]`); });
 }
 async function shopRemove(id) {
   if (!requireToken()) return;
   await run(async () => { await saveJsonFile('shopFile', d => { d.items = d.items.filter(i => i.id !== id); return d; }, `shop: remove ${id} [skip ci]`); });
 }
-async function shopClearDone() {
+// 「買い物を記録」: 買った物を買った日ごとに 1 行ずつ logs へ書き（実績・バッジに数える）、それからメモから消す。
+// すでに記録した物（item_ids にある）は二重に書かない（途中で失敗して残った場合）
+const shopEntries = entries => entries.filter(e => e.mode === 'shop' && EARNED.has(e.status));
+async function shopRecord() {
   if (!requireToken()) return;
-  await run(async () => { await saveJsonFile('shopFile', d => { d.items = d.items.filter(i => !i.done); return d; }, 'shop: clear bought [skip ci]'); }, '買った分を消した');
+  const done = shopItems().filter(i => i.done); if (!done.length) return;
+  const left = shopItems().length - done.length; const n = done.length;
+  await run(async () => {
+    const logged = new Set(shopEntries(allEntries()).flatMap(e => e.item_ids || []));
+    const byDay = new Map();
+    done.filter(i => !logged.has(i.id)).forEach(i => { const at = i.bought || nowParts().iso; const day = at.slice(0, 10); (byDay.get(day) || byDay.set(day, []).get(day)).push({ i, at }); });
+    const days = [...byDay.keys()].sort();
+    for (const day of days) {
+      const list = byDay.get(day); const last = list.map(x => x.at).sort().pop(); const e = { date: day };
+      if (last.length > 10) e.ts = last;
+      Object.assign(e, { task_id: 'shopping', title: '買い物', area: 'nameless', slot: slotOfHour(last.length > 10 ? +last.slice(11, 13) : nowParts().hour), status: 'done', mode: 'shop',
+        actual_minutes: 0, weight: 1, weighted_minutes: 0, xp: SHOP_XP * list.length, items: list.map(x => x.i.text), item_ids: list.map(x => x.i.id), id: uid() });
+      if (day === days[days.length - 1]) e.left = left;   // メモに残った数は今回の買い物（いちばん新しい日）の行にだけ
+      await ensureMonths(day, day);
+      await mutateMonth(ymOf(day), lines => [...lines, JSON.stringify(e)], `log: shopping ${day} ${list.length} items [skip ci]`);
+    }
+    const ids = new Set(done.map(i => i.id));
+    await saveJsonFile('shopFile', d => { d.items = d.items.filter(i => !ids.has(i.id)); return d; }, 'shop: record bought [skip ci]');
+    state.streak = await computeStreak(nowParts().date);
+  }, `買い物を記録した：${n} 点 ・ 名もなき家事 +${n * SHOP_XP} XP`);
 }
 async function shopShare() {
   const open = shopItems().filter(i => !i.done); if (!open.length) { toast('メモは空', true); return; }
@@ -277,8 +301,9 @@ async function shopShare() {
   try { if (navigator.share) { await navigator.share({ text }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
   try { await navigator.clipboard.writeText(text); toast('コピーした'); } catch { window.prompt('コピーして使う', text); }
 }
-function shoppingHTML() {
+function shoppingHTML(all) {
   const items = shopItems(); const open = items.filter(i => !i.done), done = items.filter(i => i.done);
+  const past = shopEntries(all); const pastItems = past.reduce((a, e) => a + (e.items || []).length, 0); const pastDays = new Set(past.map(e => e.date)).size;
   const inList = new Set(items.map(i => i.text));
   const chips = shopRecent().filter(t => !inList.has(t)).slice(0, 12).map(t => `<button class="chip" data-act="shop-add" data-text="${esc(t)}">${esc(t)}</button>`).join('');
   const row = i => `<li class="shop-item${i.done ? ' is-done' : ''}" data-sid="${esc(i.id)}"><button class="tick" data-act="shop-toggle" aria-label="${i.done ? `${esc(i.text)} を戻す` : `${esc(i.text)} を買った`}">${ic('check')}</button><button class="shop-name" data-act="shop-toggle">${esc(i.text)}</button><button class="ghost icon-only sm" data-act="shop-remove" aria-label="${esc(i.text)} を消す" title="消す">${ic('x')}</button></li>`;
@@ -286,8 +311,10 @@ function shoppingHTML() {
     <div class="shop-add"><input type="text" id="shop-input" placeholder="牛乳、卵（「、」で区切ると複数）" aria-label="買う物" value="${esc(state.shopDraft)}" maxlength="120" autocomplete="off" enterkeyhint="done"><button class="primary" data-act="shop-add-input">${ic('plus')}<span>追加</span></button></div>
     ${chips ? `<div class="chips shop-chips">${chips}</div>` : ''}
     ${open.length ? `<ul class="shop">${open.map(row).join('')}</ul>` : `<p class="empty">まだ何もない。補充のカートのボタンからも足せる</p>`}
-    ${done.length ? `<h3 class="group">買った <span class="sub">${done.length}</span></h3><ul class="shop">${done.map(row).join('')}</ul>` : ''}
-    <div class="actions left"><button class="ghost small" data-act="shop-share">${ic('share')}共有・コピー</button>${done.length ? `<button class="ghost small" data-act="shop-clear">${ic('trash')}買った分を消す</button>` : ''}</div>`;
+    ${done.length ? `<h3 class="group">買った <span class="sub">${done.length} 点 ・ まだ記録していない</span></h3><ul class="shop">${done.map(row).join('')}</ul>
+      <button class="primary wide shop-record" data-act="shop-record">${ic('check')}<span>買い物を記録 <small>${done.length} 点 ・ +${done.length * SHOP_XP} XP</small></span></button>` : ''}
+    <div class="actions left"><button class="ghost small" data-act="shop-share">${ic('share')}共有・コピー</button></div>
+    ${pastItems ? `<p class="shop-total">${ic('trophy')}<span>これまで <b class="num">${pastDays}</b> 日 ・ <b class="num">${pastItems}</b> 点の買い物。実績とバッジに数えている</span></p>` : ''}`;
 }
 
 // ---- 集計（週次目標・ランプ・ストリーク） ----
@@ -345,7 +372,7 @@ function render() {
   $('#basics').innerHTML = basicsHTML();
   $('#quick').innerHTML = quickHTML(todays);
   $('#refill').innerHTML = refillHTML(date, entries);
-  $('#shopping').innerHTML = shoppingHTML();
+  $('#shopping').innerHTML = shoppingHTML(all);
   $('#week').innerHTML = weekHTML(today, date, entries);
   $('#achievements').innerHTML = achievementsHTML(today, date, entries, all);
   $('#today-log').innerHTML = logHTML(date, todays);
@@ -710,7 +737,7 @@ function logRowHTML(e, showDate) {
   const slot = SLOT_JA[entrySlot(e, taskById(e.task_id))] || '';
   const when = showDate ? esc(e.date.slice(5).replace('-', '/')) : esc(time);
   const area = e.area || (taskById(e.task_id) || {}).area || 'nameless';
-  return `<li class="${rkOf(area)}${e.status === 'tip' ? ' is-tip' : ''}${e.status === 'passed' ? ' is-pass' : ''}"><span class="t">${when}</span><span class="n">${esc(e.title || e.task_id)} <span class="badge">${slot}</span>${st ? ` <span class="badge">${st}</span>` : ''}${e.mood ? ' ' + MOODS[e.mood - 1] : ''}${e.learned ? `<span class="note">${ic('bulb')}${esc(e.learned)}</span>` : ''}</span><span class="m">${EARNED.has(e.status) ? `${e.actual_minutes}分 → ${Math.round(e.weighted_minutes)}` : ''}</span>${e.id ? `<button class="ghost icon-only sm" data-act="undo" data-entry="${esc(e.id)}" aria-label="取り消し" title="取り消し">${ic('x')}</button>` : ''}</li>`;
+  return `<li class="${rkOf(area)}${e.status === 'tip' ? ' is-tip' : ''}${e.status === 'passed' ? ' is-pass' : ''}"><span class="t">${when}</span><span class="n">${esc(e.title || e.task_id)} <span class="badge">${slot}</span>${st ? ` <span class="badge">${st}</span>` : ''}${e.mood ? ' ' + MOODS[e.mood - 1] : ''}${e.learned ? `<span class="note">${ic('bulb')}${esc(e.learned)}</span>` : ''}${e.mode === 'shop' ? `<span class="note shop-note">${ic('cart')}${esc((e.items || []).join('・'))}</span>` : ''}</span><span class="m">${e.mode === 'shop' ? `${(e.items || []).length}点` : EARNED.has(e.status) ? `${e.actual_minutes}分 → ${Math.round(e.weighted_minutes)}` : ''}</span>${e.id ? `<button class="ghost icon-only sm" data-act="undo" data-entry="${esc(e.id)}" aria-label="取り消し" title="取り消し">${ic('x')}</button>` : ''}</li>`;
 }
 function logHTML(date, todays) {
   const title = isToday() ? '今日の記録' : `${jaDate(date)} の記録`;
@@ -724,7 +751,7 @@ function renderSearch(date, todays, entries) {
   const terms = q.split(/\s+/).filter(Boolean); const hit = s => { const n = norm(s); return terms.every(t => n.includes(t)); };
   const routines = activeRoutines().filter(r => hit([r.title, r.id, r.place, r.group, AREA_JA[r.area], ...(r.checklist || []), ...stepsOf(r).map(st => st.title)].join(' '))).slice(0, 12);
   const tips = state.tips.filter(t => hit([t.title, t.body, t.action, t.topic, ...(t.tags || [])].join(' '))).slice(0, 10);
-  const logs = entries.filter(e => hit([e.title, e.learned, e.task_id].join(' '))).slice(-8).reverse();
+  const logs = entries.filter(e => hit([e.title, e.learned, e.task_id, ...(e.items || [])].join(' '))).slice(-8).reverse();
   const chapters = state.basics.filter(c => hit([c.title, c.summary, c.text].join(' ')));
   const stats = tipStats(entries);
   const rHtml = routines.map(r => {
@@ -772,7 +799,42 @@ function newStats() {
     streakCur: 0, streakBest: 0, coreStreakCur: 0, coreStreakBest: 0, passes: 0, partials: 0, learned: 0, practiced: 0, tipStage: {},
     fast: {}, long: {}, slotDays: {}, dayCount: {}, morningCount: {}, early: 0, resume: 0, placeLast: {}, weekTotal: {}, areaDays: {}, lastDay: '',
     byKind: {}, stepEntries: 0, stepSets: {}, stepsComplete: 0, menuSteps: {},
-    moods: 0, backfills: 0, dayWeighted: {}, daySlots: {}, slotCount: {}, dayTasks: {}, tipsPracticed: new Set(), firstDay: '', yearEnd: {} };
+    moods: 0, backfills: 0, dayWeighted: {}, daySlots: {}, slotCount: {}, dayTasks: {}, tipsPracticed: new Set(), firstDay: '', yearEnd: {},
+    shop: { items: 0, days: {}, names: {}, refill: 0, pairs: 0, clean: 0, buys: {}, fills: {} } };
+}
+// ---- 買い物（logs の mode: shop の行）の数え方 ----
+// 名前の比べ方: 全角半角・空白・「・」「用」・（ ）の中・末尾の個数（×2、2本 など）をそろえる
+const shopKey = t => String(t || '').normalize('NFKC').replace(/[（(][^）)]*[）)]/g, '').replace(/[×✖xX]\uFE0F?\s*\d+\s*$/u, '')
+  .replace(/\d+\s*(個入り|個|本|袋|パック|箱|枚|つ|ロール|kg|g|ml|l)$/i, '').replace(/[\s・用]/g, '').toLowerCase();
+// 買った物がどの補充の項目か（refill.yml の buy:・title、match: の別名）。完全一致を優先し、3 文字以上の部分一致も見る
+let refillKeysCache = null;
+function refillOfItem(text) {
+  const k = shopKey(text); if (!k) return null;
+  if (!refillKeysCache) refillKeysCache = state.routines.filter(isRefill).map(r => [r.id, [shopNameOf(r), ...(Array.isArray(r.match) ? r.match : [])].map(shopKey).filter(Boolean)]);
+  let best = null;
+  refillKeysCache.forEach(([id, keys]) => keys.forEach(a => {
+    const score = a === k ? 100 : Math.min(a.length, k.length) >= 3 && (a.includes(k) || k.includes(a)) ? Math.min(a.length, k.length) : 0;
+    if (score && (!best || score > best.score)) best = { id, score };
+  }));
+  return best && best.id;
+}
+function shopStat(st, e, day) {
+  const sh = st.shop; const items = Array.isArray(e.items) ? e.items : [];
+  sh.items += items.length; sh.days[day] = (sh.days[day] || 0) + items.length;
+  if (e.left === 0) sh.clean++;   // メモを全部買いきって記録した
+  items.forEach(t => { const k = shopKey(t); if (k) sh.names[k] = (sh.names[k] || 0) + 1; const rid = refillOfItem(t); if (rid) { sh.refill++; shopPair(st, rid, day, 'buy'); } });
+}
+// 補充とその物の買い物が 14 日以内に並んだら 1 回（買ってから補充でも、補充してから買い足しでも）。1 つの記録は 1 回だけ使う
+function shopPair(st, rid, day, kind) {
+  const sh = st.shop; const other = kind === 'buy' ? sh.fills : sh.buys; const mine = kind === 'buy' ? sh.buys : sh.fills;
+  const list = other[rid] || []; const i = list.findIndex(d => daysBetween(d, day) <= 14);
+  if (i >= 0) { list.splice(i, 1); sh.pairs++; } else (mine[rid] || (mine[rid] = [])).push(day);
+}
+// 買い物をした週が何週続いたか（月曜はじまり）の最長
+function shopWeeks(sh) {
+  const ws = [...new Set(Object.keys(sh.days).map(mondayOf))].sort(); let best = 0, run = 0;
+  ws.forEach((w, i) => { run = i && daysBetween(ws[i - 1], w) === 7 ? run + 1 : 1; best = Math.max(best, run); });
+  return best;
 }
 const addDayTask = (st, day, pid) => { (st.dayTasks[day] || (st.dayTasks[day] = new Set())).add(pid); };
 // 掃除メニューを 1 回やり終えた（親を記録、または手順が全部そろった）
@@ -786,6 +848,8 @@ function statAdd(st, e) {
   if (!EARNED.has(e.status)) return;
   const sx = stepById(e.task_id); const r = sx ? sx.parent : routineById(e.task_id); const pid = r ? r.id : e.task_id;   // 手順の記録は親のタスクに数える
   const area = e.area || (r && r.area) || 'nameless'; const day = e.date;
+  if (e.mode === 'shop') shopStat(st, e, day);
+  if (r && isRefill(r) && !sx) shopPair(st, r.id, day, 'fill');
   st.n++; st.byArea[area] = (st.byArea[area] || 0) + 1;
   if (!st.firstDay || day < st.firstDay) st.firstDay = day;
   if (e.mood) st.moods++;
@@ -928,6 +992,11 @@ function customMeasure(c, st, day, gte) {
     case 'fast_total': return { v: Object.values(st.fast).reduce((a, x) => a + x, 0), t: gte };
     case 'on_date': { const md = c.md || []; return { v: [...st.days].filter(d => c.zorome ? d.slice(5, 7) === d.slice(8, 10) : md.includes(d.slice(5))).length, t: gte }; }
     case 'year_end': return { v: Math.max(0, ...Object.values(st.yearEnd)), t: gte };
+    case 'shop': {   // 買い物。of: items 点数 / days 日数 / distinct 種類 / same 同じ物の最多 / bulk n 点以上の日 / weeks 続いた週 / refill 補充の物 / pairs 補充とのつながり / clean 買いきった回
+      const sh = st.shop;
+      const v = { items: sh.items, days: Object.keys(sh.days).length, distinct: Object.keys(sh.names).length, same: Math.max(0, ...Object.values(sh.names)),
+        bulk: Object.values(sh.days).filter(x => x >= (+c.n || 10)).length, weeks: shopWeeks(sh), refill: sh.refill, pairs: sh.pairs, clean: sh.clean }[c.of];
+      return { v: v || 0, t: gte }; }
   }
   return { v: 0, t: 1 };
 }
@@ -984,7 +1053,7 @@ function achievementsHTML(today, date, entries, all) {
   // 称号の札: 段の番号・名前・次の称号までの進み
   const lo = ttl.cur.badges, hi = ttl.next ? ttl.next.badges : lo; const tpct = ttl.next ? Math.round((n - lo) / Math.max(1, hi - lo) * 100) : 100;
   const plate = `<div class="title-plate ${rankCls(tRank)}"><div class="tp-emblem"><small>第</small><b>${ttl.idx + 1}</b><small>段</small></div><div class="tp-main"><div class="tp-label">称号 ・ 全 ${ttl.list.length} 段</div><div class="tp-name">${esc(ttl.name)}</div><div class="bar tp-bar"><div class="fill" style="width:${tpct}%"></div></div><div class="tp-next">${ttl.next ? `次は「${esc(ttl.next.name)}」 あと ${ttl.next.badges - n} 個` : '最上段に到達'}</div></div></div>`;
-  const stats = `<div class="stats"><div class="stat"><span class="k">${ic('trophy')}バッジ</span><b>${n}</b><span class="u">/${total}</span></div><div class="stat"><span class="k">${ic('sparkle')}XP</span><b>${xp.toLocaleString()}</b></div><div class="stat"><span class="k">${ic('flame')}最長連続</span><b>${st.streakBest}</b><span class="u">日</span></div><div class="stat"><span class="k">${ic('clock')}換算</span><b>${Math.round(st.weighted / 60)}</b><span class="u">時間</span></div></div>`;
+  const stats = `<div class="stats"><div class="stat"><span class="k">${ic('trophy')}バッジ</span><b>${n}</b><span class="u">/${total}</span></div><div class="stat"><span class="k">${ic('sparkle')}XP</span><b>${xp.toLocaleString()}</b></div><div class="stat"><span class="k">${ic('flame')}最長連続</span><b>${st.streakBest}</b><span class="u">日</span></div><div class="stat"><span class="k">${ic('clock')}換算</span><b>${Math.round(st.weighted / 60)}</b><span class="u">時間</span></div><div class="stat"><span class="k">${ic('cart')}買い物</span><b>${st.shop.items}</b><span class="u">点</span></div><div class="stat"><span class="k">${ic('bulb')}コツ実践</span><b>${st.practiced}</b><span class="u">回</span></div></div>`;
   // 領域のメダル: 輪は次の Lv までの進み、色は段。押すとその領域の詳しい数字
   const info = AREAS.map(a => { const x = st.xpByArea[a] || 0; const lv = levelOf(x); const lo2 = lv * lv * 100, hi2 = nextLevelXp(lv); return { a, x, lv, hi: hi2, p: Math.round((x - lo2) / (hi2 - lo2) * 100) }; });
   const focus = info.find(i => i.a === state.lvFocus) || info.slice().sort((p, q) => q.p - p.p)[0];
@@ -1143,7 +1212,7 @@ document.addEventListener('click', ev => {
     case 'shop-add-input': shopAdd($('#shop-input').value); break;
     case 'shop-toggle': { const li = b.closest('[data-sid]'); if (li) shopToggle(li.dataset.sid); break; }
     case 'shop-remove': { const li = b.closest('[data-sid]'); if (li) shopRemove(li.dataset.sid); break; }
-    case 'shop-clear': shopClearDone(); break;
+    case 'shop-record': shopRecord(); break;
     case 'shop-share': shopShare(); break;
     case 'undo': undo(b.dataset.entry); break;
     case 'pass': recordPass(); break;
@@ -1267,7 +1336,7 @@ async function init() {
     state.config = (await pConfig) || {};
     logs = loadLogs(); logs.catch(() => {});   // 記録はすぐ取りに行く（失敗は下の run で知らせる）
     const [routines, tips, basics, badges] = await pRest;
-    state.routines = Array.isArray(routines) ? routines : []; stepIndexCache = null; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
+    state.routines = Array.isArray(routines) ? routines : []; stepIndexCache = null; refillKeysCache = null; state.tips = Array.isArray(tips) ? tips : []; state.basics = Array.isArray(basics) ? basics : []; state.badges = Array.isArray(badges) ? badges : [];
   } catch (e) { $('#tasks').innerHTML = `<p class="empty">設定の読み込みに失敗: ${esc(e.message)}</p>`; return; }
   const rp = repo();
   $('#repo-link').href = `https://github.com/${rp.owner}/${rp.name}`;

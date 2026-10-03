@@ -378,6 +378,11 @@ button.tick-btn:active::before { transform: scale(.86); }
 .shop-item.is-done .tick::before { background: var(--primary); border-color: var(--primary); }
 .shop-item .shop-name { flex: 1; min-width: 0; min-height: 48px; padding: 0; border: 0; background: none; text-align: left; font-size: 16px; color: var(--text); overflow-wrap: anywhere; }
 .shop-item.is-done .shop-name { color: var(--muted); text-decoration: line-through; }
+.shop-record { min-height: 52px; margin-top: 12px; }
+.shop-record small { margin-left: 6px; font-family: var(--font-num); font-size: 12.5px; font-weight: 600; opacity: .85; }
+.shop-total { display: flex; align-items: center; gap: 6px; margin: 12px 0 0; padding: 10px 12px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); color: var(--text-2); font-size: 12.5px; line-height: 1.5; }
+.shop-total .ic { width: 16px; height: 16px; flex-shrink: 0; color: var(--rk3); }
+.shop-total b { font-size: 14px; color: var(--text); }
 
 /* ---- 今週の棒グラフ（細い棒・今日を強調・目安の線） ---- */
 .days { position: relative; display: grid; grid-template-columns: repeat(7, 1fr); height: 160px; }
@@ -408,6 +413,7 @@ ul.log::before { content: ""; position: absolute; left: 53px; top: 14px; bottom:
 .log .n .badge { margin-left: 2px; }
 .log .note { display: flex; gap: 4px; align-items: flex-start; margin-top: 3px; color: var(--text-2); }
 .log .note .ic { width: 14px; height: 14px; margin-top: 3px; color: #b78c2c; }
+.log .shop-note .ic { color: #b2365a; }
 .log .m { font-family: var(--font-num); font-size: 13px; color: var(--muted); white-space: nowrap; }
 
 /* ---- 詳細・設定（下からせり上がるシート） ---- */
@@ -538,11 +544,12 @@ body.busy::after { content: ""; position: fixed; top: 0; left: 0; right: 0; z-in
 .tp-bar { height: 8px; margin: 7px 0 4px; background: var(--rk-track); }
 .tp-bar .fill { height: 100%; border-radius: 999px; background: var(--rk-fill); transition: width .6s var(--ease); }
 .tp-next { font-size: 12px; color: var(--muted); }
-.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0 0 14px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0 0 14px; }
 .stat { padding: 9px 4px 8px; border-radius: 14px; background: var(--card-2); border: 1px solid var(--line); text-align: center; }
 .stat .k { display: block; font-size: 10.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
 .stat .k .ic { width: 13px; height: 13px; margin-right: 3px; vertical-align: -2px; stroke-width: 2; }
-.stat:nth-child(1) .ic { color: var(--rk3); } .stat:nth-child(2) .ic { color: var(--primary-text); } .stat:nth-child(3) .ic { color: var(--accent); } .stat:nth-child(4) .ic { color: var(--indigo); }
+.stat:nth-child(1) .ic { color: var(--rk3); } .stat:nth-child(2) .ic { color: var(--primary-text); } .stat:nth-child(3) .ic { color: var(--accent); } .stat:nth-child(5) .ic { color: #b2365a; } .stat:nth-child(6) .ic { color: #8a6500; } .stat:nth-child(4) .ic { color: var(--indigo); }
+@media (prefers-color-scheme: dark) { .stat:nth-child(5) .ic, .log .shop-note .ic { color: #ff9fbb; } .stat:nth-child(6) .ic { color: #f2cf6b; } }
 .stat b { font-family: var(--font-num); font-size: 20px; font-weight: 700; line-height: 1.35; letter-spacing: -.02em; }
 .stat .u { margin-left: 1px; font-size: 11px; color: var(--muted); }
 .medals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin: 6px 0 2px; }

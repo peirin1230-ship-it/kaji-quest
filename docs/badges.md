@@ -13,6 +13,9 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
   `day_weighted`（換算 n 分以上の日数）、`light_days`（換算 n 分以下でも記録した日数。前日までで数える）、`all_slots_days`（朝昼夜そろった日数）、
   `slot_total`（slot の記録数）、`tips_distinct`（実践したコツの種類）、`tip_stage`（stage 段階以上のコツの数。省略は最終段階）、
   `fast_total`（見込みの半分以下で終えた回数）、`on_date`（md の日付や zorome の日に記録）、`year_end`（12/25〜31 の掃除メニュー）、
+  `shop`（買い物。of: `items` 買った点数 / `days` 買い物をした日数 / `distinct` 買った物の種類 / `same` 同じ物を買った回数の最多 /
+  `bulk` n 点以上買った日数 / `weeks` 買い物をした週が続いた最長 / `refill` 補充の項目の物を買った点数 /
+  `pairs` 補充とその物の買い物が 14 日以内に並んだ回数（買ってから補充でも、補充してから買い足しでも） / `clean` メモを全部買いきって記録した回数）、
   ほか `fast` / `long` / `both_slots` / `trio` / `day_entries` / `morning_entries` / `weekend_days` / `early` / `core_streak` / `resume` /
   `all_places` / `everyday_weeks` / `best_week` / `ramp_top` / `step_entries` / `steps_complete`
 - `tier`: bronze / silver / gold / platinum / secret（xp_bonus を省略すると tier で決まる: 10 / 30 / 100 / 300 / 50）
@@ -20,6 +23,8 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 - 削除したタスク（prefs.json）だけが条件のバッジは、取っていなければ一覧と総数から外す（タスクを戻すと出てくる）
 - 説明文（desc）に半角のカンマを書かない（yaml の区切りになって切れる）。数字は 3000 のように書く
 - レベルは領域ごとに `Lv = floor(sqrt(累計XP / 100))`。称号は獲得バッジ数で決まる（config.yml の titles。all: true は出ているバッジを全部）
+- 買い物: 買い物メモで「買った」にした物は、「買い物を記録」で logs に 1 行（`mode: shop`、`items` に買った物）として入る。
+  名もなき家事の記録として数え、1 点 3 XP。換算時間（週の目標）には入れない。補充の項目との対応は routines/refill.yml の buy: と match:
 
 ```yaml
 # ---- A. 継続 ----
@@ -230,7 +235,24 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 - { id: light-20, name: 細く長く, icon: 🪶, tier: silver, cat: 引き算, desc: 換算 20 分以下でも記録した日が 20 日, condition: { type: custom, key: light_days, n: 20, gte: 20 } }
 - { id: fast-010, name: 手際よし, icon: ⚡️, tier: bronze, cat: 引き算, desc: どのタスクでも見込みの半分以下で終えた回数が 10 回, condition: { type: custom, key: fast_total, gte: 10 } }
 
-# ---- J. シークレット（獲得するまで ??? ）----
+# ---- J. 買い物（買い物メモで買って「買い物を記録」した物） ----
+- { id: shop-first, name: はじめてのおつかい, icon: 🛒, tier: bronze, cat: 買い物, desc: 買い物メモで買った物を初めて記録する, condition: { type: custom, key: shop, of: items, gte: 1 } }
+- { id: shop-items-010, name: カゴいっぱい, icon: 🧺, tier: bronze, cat: 買い物, desc: 買った物が通算 10 点, condition: { type: custom, key: shop, of: items, gte: 10 } }
+- { id: shop-items-030, name: 両手に袋, icon: 🛍, tier: silver, cat: 買い物, desc: 買った物が通算 30 点, condition: { type: custom, key: shop, of: items, gte: 30 } }
+- { id: shop-items-100, name: 百品目, icon: 🏪, tier: gold, cat: 買い物, desc: 買った物が通算 100 点, condition: { type: custom, key: shop, of: items, gte: 100 } }
+- { id: shop-items-300, name: 家の物流, icon: 🚚, tier: platinum, cat: 買い物, desc: 買った物が通算 300 点, condition: { type: custom, key: shop, of: items, gte: 300 } }
+- { id: shop-days-005, name: 歩いて買い出し, icon: 🚶, tier: bronze, cat: 買い物, desc: 買い物をした日が 5 日, condition: { type: custom, key: shop, of: days, gte: 5 } }
+- { id: shop-days-020, name: 自転車で買い出し, icon: 🚲, tier: silver, cat: 買い物, desc: 買い物をした日が 20 日, condition: { type: custom, key: shop, of: days, gte: 20 } }
+- { id: shop-days-050, name: 買い出しの達人, icon: 🚗, tier: gold, cat: 買い物, desc: 買い物をした日が 50 日, condition: { type: custom, key: shop, of: days, gte: 50 } }
+- { id: shop-kinds-010, name: 十品目, icon: 🥕, tier: bronze, cat: 買い物, desc: 10 種類の物を買う, condition: { type: custom, key: shop, of: distinct, gte: 10 } }
+- { id: shop-kinds-030, name: 品ぞろえ, icon: 🧾, tier: silver, cat: 買い物, desc: 30 種類の物を買う, condition: { type: custom, key: shop, of: distinct, gte: 30 } }
+- { id: shop-staple, name: いつもの一品, icon: 🥛, tier: bronze, cat: 買い物, desc: 同じ物を 5 回買う, condition: { type: custom, key: shop, of: same, gte: 5 } }
+- { id: shop-bulk, name: まとめ買い, icon: 📦, tier: silver, cat: 買い物, desc: 1 日に 10 点以上買う, condition: { type: custom, key: shop, of: bulk, n: 10, gte: 1 } }
+- { id: shop-weeks-4, name: 毎週の買い出し, icon: 📅, tier: silver, cat: 買い物, desc: 4 週続けて買い物をする, condition: { type: custom, key: shop, of: weeks, gte: 4 } }
+- { id: shop-refill, name: 補充の段取り, icon: 🧴, tier: bronze, cat: 買い物, desc: 洗剤や消耗品（補充の項目）を買い物メモで 3 点買う, condition: { type: custom, key: shop, of: refill, gte: 3 } }
+- { id: shop-pairs, name: 在庫の循環, icon: 🔁, tier: silver, cat: 買い物, desc: 補充とその物の買い物を 14 日以内につなげる（3 回）, condition: { type: custom, key: shop, of: pairs, gte: 3 } }
+
+# ---- K. シークレット（獲得するまで ??? ）----
 - { id: dawn, name: 夜明け前の人, icon: 🌅, tier: secret, cat: シークレット, desc: 3:00〜5:29 の記録が 10 回, secret: true, condition: { type: custom, key: early, gte: 10 } }
 - { id: trio, name: 三種そろい踏み, icon: 🎼, tier: secret, cat: シークレット, desc: 洗い物・料理・洗濯を同じ日に記録した日が 7 日, secret: true, condition: { type: custom, key: trio, areas: [dishes, cooking, laundry], gte: 7 } }
 - { id: ten-a-day, name: 一日十件, icon: 🔟, tier: secret, cat: シークレット, desc: 1 日に 10 件記録する, secret: true, condition: { type: custom, key: day_entries, n: 10, gte: 1 } }
@@ -241,4 +263,5 @@ docs/SPEC.md §7 のバッジ体系を、いまのページ（Issue を使わな
 - { id: new-year, name: 元日の人, icon: 🎍, tier: secret, cat: シークレット, desc: 1 月 1 日に記録, secret: true, condition: { type: custom, key: on_date, md: ['01-01'], gte: 1 } }
 - { id: new-year-eve, name: 大晦日の人, icon: 🔔, tier: secret, cat: シークレット, desc: 12 月 31 日に記録, secret: true, condition: { type: custom, key: on_date, md: ['12-31'], gte: 1 } }
 - { id: year-end, name: 年末の大掃除, icon: 🎊, tier: secret, cat: シークレット, desc: 12 月 25〜31 日に掃除メニューを 5 回, secret: true, condition: { type: custom, key: year_end, gte: 5 } }
+- { id: shop-clean, name: 買い忘れゼロ, icon: ✅, tier: secret, cat: シークレット, desc: メモを全部買いきって記録する（3 回）, secret: true, condition: { type: custom, key: shop, of: clean, gte: 3 } }
 ```
