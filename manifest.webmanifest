@@ -1,0 +1,12 @@
+{
+  "name": "kaji quest — 暮らしの冒険帳",
+  "short_name": "kaji quest",
+  "description": "家事を続けるための、ひとり用の冒険帳。1 タップで記録して、レベルと称号が育つ。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f1e6",
+  "theme_color": "#f6f1e6",
+  "lang": "ja",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
