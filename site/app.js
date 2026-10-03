@@ -379,6 +379,7 @@ function render() {
   renderSearch(date, todays, entries);
   document.body.classList.toggle('busy', state.busy);
   decorateCards(); requestAnimationFrame(updateNav);
+  if (pendingGo && state.loaded && !state.busy) { const g = pendingGo; pendingGo = null; requestAnimationFrame(() => goTo(g.id, g.fallback)); }
   if (state.shopFocus && !state.busy) { state.shopFocus = false; const inp = $('#shop-input'); if (inp) inp.focus({ preventScroll: true }); }
 }
 // 週の輪: 書き換えた後、前の長さから新しい長さへ CSS の transition で伸ばす（最初の表示はゼロから）
@@ -438,31 +439,76 @@ function decorateCards() {
     sec.classList.toggle('is-collapsed', on);
   });
 }
-// 見出しへ飛ぶ。飛び先が無い（その日にその欄が無い）ときは fallback のカードへ。たたんであれば開く
+// ---- ページ内ナビ: 押すと見出しへ飛ぶ。スクロールすると、今見ている見出しのチップが光り、帯の真ん中に来る ----
+// 帯（横スクロール）は帯だけを動かす。チップに scrollIntoView を使うと、iPhone ではページのなめらかなスクロールが打ち消されて飛ばないことがある
+const reduceMotion = () => !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+let navActive = null;
+function showChip(chip, smooth) {
+  const strip = chip && chip.parentElement; if (!strip || strip.scrollWidth <= strip.clientWidth + 1) return;
+  const sr = strip.getBoundingClientRect(), cr = chip.getBoundingClientRect();
+  const to = Math.max(0, Math.min(strip.scrollWidth - strip.clientWidth, Math.round(strip.scrollLeft + (cr.left - sr.left) - (sr.width - cr.width) / 2)));
+  if (Math.abs(to - strip.scrollLeft) >= 2) strip.scrollTo({ left: to, behavior: smooth && !reduceMotion() ? 'smooth' : 'auto' });
+}
+function setNavActive(id, smooth) {
+  if (id === navActive) return; navActive = id;   // 変わったときだけ（スクロール中は毎フレーム呼ばれる）
+  document.querySelectorAll('#nav .nav-chip').forEach(c => { const on = !!id && c.dataset.go === id; c.classList.toggle('is-active', on); if (on) c.setAttribute('aria-current', 'location'); else c.removeAttribute('aria-current'); });
+  showChip(document.querySelector(id ? `#nav .nav-chip[data-go="${id}"]` : '#nav .nav-chip'), smooth);   // 見出しより上（いちばん上）では帯も先頭へ
+}
+// 見出しへ飛ぶ。飛び先が無い（その日にその欄が無い）ときは fallback のカードへ。たたんであれば開いてから飛ぶ。
+// 読み込み中に押されたら、描き終わってから飛ぶ。飛び終わって位置がずれていたら（途中で打ち消された）1 回だけすぐ飛び直す
+let navJump = null, navSettleTimer = 0, pendingGo = null;
 function goTo(id, fallback) {
-  if (id === 'top') { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-  let el = document.getElementById(id); if (!visible(el)) el = fallback ? document.getElementById(fallback) : null; if (!visible(el)) return;
-  const card = el.closest('.card') || el; if (card.classList.contains('is-collapsed')) setCollapsed(card.id, false);
-  navHold = Date.now() + 900;   // スクロール中は押したチップを保つ（途中の見出しでチラつかない）
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  markNav(id);
+  if (id === 'top') { navJump = null; setNavActive('', true); window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' }); return; }
+  if (!state.loaded) { pendingGo = { id, fallback }; setNavActive(id, true); return; }   // 読み込み中（カードはまだ空）
+  let el = document.getElementById(id) || (fallback ? document.getElementById(fallback) : null); if (!el) return;
+  const card = el.closest('.card'); if (card && card.classList.contains('is-collapsed')) setCollapsed(card.id, false);
+  if (!visible(el)) { el = fallback ? document.getElementById(fallback) : null; if (!visible(el)) return; }
+  setNavActive(id, true);
+  navJump = { id, fallback };
+  el.scrollIntoView({ behavior: reduceMotion() ? 'auto' : 'smooth', block: 'start' });
+  armNavSettle();
 }
-let navHold = 0;
-function markNav(id) {
-  document.querySelectorAll('#nav .nav-chip').forEach(c => c.classList.toggle('is-active', c.dataset.go === id));
-  const c = document.querySelector('#nav .nav-chip.is-active'); if (c) c.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+function armNavSettle() { clearTimeout(navSettleTimer); navSettleTimer = setTimeout(navSettled, 220); }
+function navSettled() {
+  const j = navJump; if (!j) return;
+  let el = document.getElementById(j.id); if (!visible(el)) el = j.fallback ? document.getElementById(j.fallback) : null;
+  if (visible(el) && !j.retried) {
+    const pad = parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0;
+    const off = el.getBoundingClientRect().top - pad; const room = document.documentElement.scrollHeight - window.innerHeight - window.scrollY;   // まだ下へ動ける量
+    if (Math.abs(off) > 24 && (off < 0 || room > 2)) { j.retried = true; el.scrollIntoView({ block: 'start' }); armNavSettle(); return; }
+  }
+  navJump = null; updateNav();
 }
-// 今どの見出しを見ているかをナビに映す（見出しがナビの下端より上にある最後のもの）
+// 飛んでいる途中に自分でスクロールし始めたら、飛び直しはしない
+['wheel', 'touchstart', 'keydown'].forEach(t => window.addEventListener(t, ev => { if (navJump && !(ev.target.closest && ev.target.closest('#nav'))) { navJump = null; clearTimeout(navSettleTimer); } }, { passive: true }));
+// 今どの見出しを見ているか: ナビの下端より上にある見出しのうち、いちばん下のもの（2 列の画面でも見た目の位置で決める）
 function updateNav() {
-  const nav = $('#nav'); if (!nav || Date.now() < navHold) return; const limit = nav.getBoundingClientRect().bottom + 20; let active = '';   // scroll-margin-top（60px）で止まった見出しが「見ている」に入るよう少し余裕を取る
-  const shown = NAV_IDS.filter(id => visible(document.getElementById(id)));
-  shown.forEach(id => { if (document.getElementById(id).getBoundingClientRect().top <= limit) active = id; });
-  if (shown.length && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = shown[shown.length - 1];   // 一番下まで来たら最後の見出し
-  document.querySelectorAll('#nav .nav-chip').forEach(c => c.classList.toggle('is-active', c.dataset.go === active));
+  if (navJump) return;   // 飛んでいる途中は押したチップのまま（途中の見出しでチラつかない）
+  const nav = $('#nav'); if (!nav) return; const limit = nav.getBoundingClientRect().bottom + 20;
+  let active = '', best = -Infinity, last = '', lastTop = -Infinity;
+  NAV_IDS.forEach(id => {
+    const el = document.getElementById(id); if (!visible(el)) return; const t = el.getBoundingClientRect().top;
+    if (t <= limit && t > best) { best = t; active = id; }
+    if (t > lastTop) { lastTop = t; last = id; }
+  });
+  if (last && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) active = last;   // 一番下まで来たら最後の見出し
+  setNavActive(active, true);
 }
 let navTick = false;
-window.addEventListener('scroll', () => { if (navTick) return; navTick = true; requestAnimationFrame(() => { navTick = false; updateNav(); }); }, { passive: true });
-$('#nav').addEventListener('click', ev => { const b = ev.target.closest('[data-go]'); if (b) goTo(b.dataset.go, b.dataset.fallback); });
+window.addEventListener('scroll', () => {
+  if (navJump) armNavSettle();
+  if (navTick) return; navTick = true; requestAnimationFrame(() => { navTick = false; updateNav(); });
+}, { passive: true });
+// チップは指を離した時点で飛ぶ（iPhone では、慣性で流れている最中のタップに click が来ないことがある）。キーボードは click で
+let navPress = null, navFiredAt = 0;
+$('#nav').addEventListener('pointerdown', ev => { const b = ev.target.closest('[data-go]'); navPress = b && ev.isPrimary ? { b, x: ev.clientX, y: ev.clientY } : null; });
+$('#nav').addEventListener('pointercancel', () => { navPress = null; });   // 帯を横に動かした・ページをスクロールした
+$('#nav').addEventListener('pointerup', ev => {
+  const p = navPress; navPress = null; if (!p) return;
+  const b = ev.target.closest('[data-go]'); if (b !== p.b || Math.hypot(ev.clientX - p.x, ev.clientY - p.y) > 12) return;
+  navFiredAt = Date.now(); goTo(b.dataset.go, b.dataset.fallback);
+});
+$('#nav').addEventListener('click', ev => { const b = ev.target.closest('[data-go]'); if (!b || Date.now() - navFiredAt < 700) return; goTo(b.dataset.go, b.dataset.fallback); });
 function progressHTML(today, date, entries) {
   const t = targetInfo(date, entries); const ws = mondayOf(date), we = addDays(ws, 6);
   const got = Math.round(sumWeighted(entries, ws, we)); const last = Math.round(sumWeighted(entries, addDays(ws, -7), addDays(ws, -1)));
