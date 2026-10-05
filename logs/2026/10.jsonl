@@ -38,3 +38,4 @@
 {"date":"2026-10-04","ts":"2026-10-04T21:40:39+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mutt73njvnnt"}
 {"date":"2026-10-04","ts":"2026-10-04T21:40:42+09:00","task_id":"garbage","title":"ゴミまとめ（翌朝出す分）","area":"nameless","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1.35,"weighted_minutes":6.8,"xp":7,"id":"mutt75t6ku1j"}
 {"date":"2026-10-05","ts":"2026-10-05T13:08:05+09:00","task_id":"garbage-out","title":"ゴミを出す（収集日の朝）","area":"nameless","slot":"noon","status":"done","mode":"full","actual_minutes":2,"weight":1.2,"weighted_minutes":2.4,"xp":2,"id":"muuqbs7galyc"}
+{"date":"2026-10-05","backfill":true,"task_id":"laundry-wash","title":"洗濯乾燥を回す（ドラム式）","area":"laundry","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1.1,"weighted_minutes":5.5,"xp":6,"id":"muvelt0qwj5h"}
