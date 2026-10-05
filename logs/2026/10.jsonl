@@ -42,3 +42,4 @@
 {"date":"2026-10-05","backfill":true,"task_id":"cooking-prep","title":"翌日分の仕込み","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":90,"weight":1.35,"weighted_minutes":121.5,"xp":122,"id":"muvelz0jcsw2"}
 {"date":"2026-10-05","backfill":true,"task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"muvem6d18ei5"}
 {"date":"2026-10-05","backfill":true,"task_id":"_tip","title":"マイクロファイバーは洗剤いらず、柔軟剤は禁物","area":"cleaning","status":"tip","tip_id":"cleaning-035","tip_practiced":true,"id":"muvemgjshydz"}
+{"date":"2026-10-06","ts":"2026-10-06T00:37:35+09:00","task_id":"shopping","title":"買い物","area":"nameless","slot":"night","status":"done","mode":"shop","actual_minutes":0,"weight":1,"weighted_minutes":0,"xp":3,"items":["コケとーるシャワー"],"item_ids":["mut6dzko6evc"],"id":"muveykxn0nnw","left":4}
