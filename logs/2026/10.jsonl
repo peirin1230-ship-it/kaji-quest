@@ -59,3 +59,4 @@
 {"date":"2026-10-07","ts":"2026-10-07T18:26:22+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"muxwksuv6z9r"}
 {"date":"2026-10-07","ts":"2026-10-07T19:39:16+09:00","task_id":"laundry-wash","title":"洗濯乾燥を回す（ドラム式）","area":"laundry","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1.1,"weighted_minutes":5.5,"xp":6,"id":"muxz6kfpqlzo"}
 {"date":"2026-10-07","ts":"2026-10-07T19:54:09+09:00","task_id":"dining-wipe","title":"食卓・子ども椅子・壁の食べこぼし","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1,"weighted_minutes":5,"xp":5,"id":"muxzpoyf6ceg"}
+{"date":"2026-10-07","ts":"2026-10-07T19:54:14+09:00","task_id":"floor-vacuum","title":"床の掃除機（全部屋）","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"muxzpt5ga8z7"}
