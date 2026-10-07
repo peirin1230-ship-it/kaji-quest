@@ -56,3 +56,4 @@
 {"date":"2026-10-07","ts":"2026-10-07T06:55:50+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mux7wrp9l84t"}
 {"date":"2026-10-07","ts":"2026-10-07T18:26:15+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"muxwknsy28h9"}
 {"date":"2026-10-07","ts":"2026-10-07T18:26:20+09:00","task_id":"dinner-cook","title":"夜ご飯を作る","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":30,"weight":1.35,"weighted_minutes":40.5,"xp":41,"id":"muxwkreujnkj"}
+{"date":"2026-10-07","ts":"2026-10-07T18:26:22+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"muxwksuv6z9r"}
