@@ -74,8 +74,9 @@
   load: { physical: 1, mental: 3, time_bound: 0 }   # W=1.30 → 換算 7分
   core: false
   checklist:
+    - recipi で時間を選んで「考えてもらう」（https://peirin1230-ship-it.github.io/recipi/）。在庫と器具から主菜＋副菜を組んでくれる
     - 主菜 1 つと副菜 1 つを決める
-    - 足りない食材を買い物メモへ
+    - 足りない食材を買い物メモへ（recipi の「足りない物を買い物メモへ」でも入る）
   steps:
     - { id: menu-stock, title: 冷蔵庫の中身を思い出す・写真を見る, est_minutes: 2 }
     - { id: menu-pick, title: 主菜と副菜を決める, est_minutes: 2 }
@@ -92,6 +93,7 @@
   load: { physical: 2, mental: 2, time_bound: 1 }   # W=1.35 → 換算 41分
   core: true
   checklist:
+    - recipi のレシピカードから「作る」で調理モード（https://peirin1230-ship-it.github.io/recipi/）。記録すればこのタスクも実時間つきで完了になる
     - 仕込み済みのものがあれば温めるだけ
     - 作りながら使った道具を洗うと、洗い物が半分になる
   steps:
@@ -111,6 +113,7 @@
   load: { physical: 2, mental: 2, time_bound: 1 }   # W=1.35 → 換算 61分
   core: false
   checklist:
+    - recipi で種類「仕込み」を選ぶと、翌日「温めるだけ」で出せる所までの手順が出る（https://peirin1230-ship-it.github.io/recipi/）
     - 主菜を仕込む
     - 副菜を仕込む
     - 粗熱を取って冷蔵し、日付を書く

@@ -2,6 +2,7 @@
 
 自分ひとりが家事・育児を続けるための道具。仕様は [docs/SPEC.md](docs/SPEC.md)、掃除の洗剤と道具の一覧は [docs/supplies.md](docs/supplies.md)。
 運用は GitHub Pages のページ 1 枚で行う。Issue は使わない。
+料理の中身（何をどう作るか・写真・家族の評価）は弟分の [recipi](https://github.com/peirin1230-ship-it/recipi)（ページ: https://peirin1230-ship-it.github.io/recipi/ ）が持つ。ページ右上の 🍳 から行き来できる。recipi で調理を記録すると「夜ご飯を作る」もここに記録され、recipi の「足りない物」は買い物メモに入り、ここで記録した買い物は recipi の在庫に取り込める。
 
 **ページ**: https://peirin1230-ship-it.github.io/kaji-quest/
 
