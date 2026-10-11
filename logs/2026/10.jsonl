@@ -91,3 +91,4 @@
 {"date":"2026-10-11","ts":"2026-10-11T07:54:06+09:00","task_id":"breakfast-cook","title":"朝ごはんを作る","area":"cooking","slot":"morning","status":"done","mode":"full","actual_minutes":20,"weight":1.25,"weighted_minutes":25,"xp":25,"id":"mv2zr4980bgp"}
 {"date":"2026-10-11","ts":"2026-10-11T08:05:52+09:00","task_id":"refill-dish-soap","title":"食器用洗剤の詰め替え","area":"nameless","slot":"morning","status":"done","mode":"full","actual_minutes":3,"weight":1,"weighted_minutes":3,"xp":3,"id":"mv3068wp299l"}
 {"date":"2026-10-11","ts":"2026-10-11T08:05:58+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mv306dou83y8"}
+{"date":"2026-10-11","ts":"2026-10-11T17:56:43+09:00","task_id":"dinner-cook","title":"夜ご飯を作る","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":64,"weight":1.35,"weighted_minutes":86.4,"xp":86,"id":"d1rijl49uvzg"}
