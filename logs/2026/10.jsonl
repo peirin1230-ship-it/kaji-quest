@@ -130,3 +130,4 @@
 {"date":"2026-10-15","ts":"2026-10-15T20:22:56+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mv9g9ithy7yl"}
 {"date":"2026-10-15","ts":"2026-10-15T20:23:02+09:00","task_id":"toilet","title":"トイレ（便器・床・壁の下）","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mv9g9ns4jqzw"}
 {"date":"2026-10-15","ts":"2026-10-15T20:23:11+09:00","task_id":"toilet-deep","title":"トイレの奥・タンク・換気口","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":9,"weight":1.1,"weighted_minutes":9.9,"xp":10,"id":"mv9g9u8oez10"}
+{"date":"2026-10-15","ts":"2026-10-15T20:23:27+09:00","task_id":"_tip","title":"食べこぼしは「食後すぐ、乾く前」","area":"cleaning","status":"tip","tip_id":"cleaning-049","tip_practiced":true,"id":"mv9ga7akk7dw"}
