@@ -220,3 +220,4 @@
 {"date":"2026-10-30","ts":"2026-10-30T06:47:09+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mvu2q7muvhh5"}
 {"date":"2026-10-30","ts":"2026-10-30T06:47:16+09:00","task_id":"garbage-out","title":"ゴミを出す（収集日の朝）","area":"nameless","slot":"morning","status":"done","mode":"full","actual_minutes":2,"weight":1.2,"weighted_minutes":2.4,"xp":2,"id":"mvu2qd1gzh63"}
 {"date":"2026-10-29","backfill":true,"task_id":"breakfast-cook","title":"朝ごはんを作る","area":"cooking","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.25,"weighted_minutes":18.8,"xp":19,"id":"mvu2qzinxbpa"}
+{"date":"2026-10-29","backfill":true,"task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mvu2r1ezzha0"}
