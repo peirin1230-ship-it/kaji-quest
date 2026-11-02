@@ -35,7 +35,9 @@
   {
    "id": "mvyotlus4stn",
    "text": "牛乳",
-   "added": "2026-11-02"
+   "added": "2026-11-02",
+   "done": true,
+   "bought": "2026-11-02T20:52:33+09:00"
   }
  ],
  "recent": [
