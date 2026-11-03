@@ -17,3 +17,4 @@
 {"date":"2026-11-03","ts":"2026-11-03T20:16:30+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mw0lefz1295b"}
 {"date":"2026-11-03","ts":"2026-11-03T20:44:46+09:00","task_id":"kitchen-counter","title":"コンロまわり・調理台を拭く","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1,"weighted_minutes":5,"xp":5,"id":"mw0mes3iik6i"}
 {"date":"2026-11-04","ts":"2026-11-04T08:26:35+09:00","task_id":"breakfast-cook","title":"朝ごはんを作る","area":"cooking","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.25,"weighted_minutes":18.8,"xp":19,"id":"mw1bhbs2kwe8"}
+{"date":"2026-11-04","ts":"2026-11-04T08:26:37+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mw1bhdk45r76"}
