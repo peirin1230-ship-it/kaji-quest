@@ -38,3 +38,4 @@
 {"date":"2026-11-06","ts":"2026-11-06T20:07:27+09:00","task_id":"nameless-adhoc","title":"名もなき家事","area":"nameless","slot":"noon","status":"done","mode":"full","actual_minutes":20,"weight":1.15,"weighted_minutes":23,"xp":23,"learned":"新幹線のチケット予約","id":"mw4vecwxng8r"}
 {"date":"2026-11-06","backfill":true,"task_id":"laundry-fold-store","title":"乾燥が終わったら取り出してたたむ・しまう","area":"laundry","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1,"weighted_minutes":15,"xp":15,"id":"mw57kbf9fkt7"}
 {"date":"2026-11-06","backfill":true,"task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mw57kdy6kcdn"}
+{"date":"2026-11-06","backfill":true,"task_id":"tidy-up","title":"片付け（床の物を戻す・散らかりリセット）","area":"nameless","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1,"weighted_minutes":10,"xp":10,"id":"mw57klab545w"}
