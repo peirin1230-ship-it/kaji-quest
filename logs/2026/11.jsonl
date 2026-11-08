@@ -39,3 +39,4 @@
 {"date":"2026-11-06","backfill":true,"task_id":"laundry-fold-store","title":"乾燥が終わったら取り出してたたむ・しまう","area":"laundry","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1,"weighted_minutes":15,"xp":15,"id":"mw57kbf9fkt7"}
 {"date":"2026-11-06","backfill":true,"task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mw57kdy6kcdn"}
 {"date":"2026-11-06","backfill":true,"task_id":"tidy-up","title":"片付け（床の物を戻す・散らかりリセット）","area":"nameless","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1,"weighted_minutes":10,"xp":10,"id":"mw57klab545w"}
+{"date":"2026-11-08","ts":"2026-11-08T18:16:46+09:00","task_id":"dinner-cook","title":"夜ご飯を作る","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":63,"weight":1.35,"weighted_minutes":85.1,"xp":85,"learned":"片栗粉入れすぎた","id":"yg4tg24cg9z8"}
