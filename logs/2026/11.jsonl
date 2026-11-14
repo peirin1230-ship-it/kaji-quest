@@ -70,3 +70,4 @@
 {"date":"2026-11-14","ts":"2026-11-14T19:16:48+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mwg94113xojz"}
 {"date":"2026-11-14","ts":"2026-11-14T19:17:02+09:00","task_id":"kitchen-counter","title":"コンロまわり・調理台を拭く","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":5,"weight":1,"weighted_minutes":5,"xp":5,"id":"mwg94c8yo5k6"}
 {"date":"2026-11-14","ts":"2026-11-14T19:17:05+09:00","task_id":"sink-polish","title":"シンクの水垢磨き","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mwg94efhzpik"}
+{"date":"2026-11-14","ts":"2026-11-14T19:17:11+09:00","task_id":"toilet","title":"トイレ（便器・床・壁の下）","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mwg94iyre5ow"}
