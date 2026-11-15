@@ -83,3 +83,4 @@
 {"date":"2026-11-14","ts":"2026-11-14T20:23:41+09:00","task_id":"drains-other","title":"洗面・洗濯機の排水口","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mwgbi1tx92kt"}
 {"date":"2026-11-15","ts":"2026-11-15T18:38:14+09:00","task_id":"dinner-cook","title":"夜ご飯を作る","area":"cooking","slot":"night","status":"done","mode":"full","actual_minutes":40,"weight":1.35,"weighted_minutes":54,"xp":54,"id":"toxskssrmbbq"}
 {"date":"2026-11-15","ts":"2026-11-15T18:49:09+09:00","task_id":"bath-clean","title":"風呂掃除","area":"cleaning","slot":"night","status":"done","mode":"full","actual_minutes":10,"weight":1.1,"weighted_minutes":11,"xp":11,"id":"mwhnkc3fb8xv"}
+{"date":"2026-11-15","ts":"2026-11-15T18:49:14+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mwhnkfmizfj5"}
