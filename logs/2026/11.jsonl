@@ -100,3 +100,4 @@
 {"date":"2026-11-18","ts":"2026-11-18T01:31:30+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"night","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mwkwtgvn7pt1"}
 {"date":"2026-11-18","ts":"2026-11-18T01:37:56+09:00","task_id":"refill-dish-soap","title":"食器用洗剤の詰め替え","area":"nameless","slot":"night","status":"done","mode":"full","actual_minutes":3,"weight":1,"weighted_minutes":3,"xp":3,"id":"mwkx1q9etm55"}
 {"date":"2026-11-18","ts":"2026-11-18T12:27:23+09:00","task_id":"breakfast-cook","title":"朝ごはんを作る","area":"cooking","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.25,"weighted_minutes":18.8,"xp":19,"id":"mwlk8xtg9of0"}
+{"date":"2026-11-18","ts":"2026-11-18T12:27:26+09:00","task_id":"dishes","title":"洗い物リセット","area":"dishes","slot":"morning","status":"done","mode":"full","actual_minutes":15,"weight":1.2,"weighted_minutes":18,"xp":18,"id":"mwlk8zuq04bb"}
